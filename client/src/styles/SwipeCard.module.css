@@ -1,0 +1,152 @@
+.card {
+  position: absolute;
+  inset: 0;
+  border-radius: 30px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(11, 19, 36, 0.86), rgba(18, 31, 55, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+  user-select: none;
+  touch-action: none;
+  will-change: transform;
+}
+
+.topCard {
+  cursor: grab;
+}
+
+.topCard:active {
+  cursor: grabbing;
+}
+
+.stackedCard {
+  pointer-events: none;
+  opacity: 0.92;
+  filter: saturate(0.9);
+}
+
+.mediaWrap {
+  position: relative;
+  height: 72%;
+  background: linear-gradient(135deg, rgba(255, 194, 91, 0.24), rgba(92, 150, 255, 0.2));
+}
+
+.media,
+.mediaPlaceholder {
+  width: 100%;
+  height: 100%;
+}
+
+.media {
+  object-fit: cover;
+}
+
+.mediaPlaceholder {
+  display: grid;
+  place-items: center;
+  font-size: 5rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.mediaScrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(4, 9, 18, 0.02) 35%, rgba(4, 10, 20, 0.64) 100%);
+}
+
+.body {
+  padding: 20px;
+}
+
+.headerRow {
+  display: flex;
+  gap: 12px;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.headerRow h2 {
+  margin: 0 0 8px;
+  font-size: 1.65rem;
+}
+
+.metaLine,
+.bio,
+.footerMeta {
+  margin: 0;
+  color: #d7deee;
+}
+
+.metaLine,
+.footerMeta span,
+.overlayLike,
+.overlaySkip,
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.roleBadge {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: #fff2cf;
+  background: rgba(255, 194, 91, 0.18);
+  border: 1px solid rgba(255, 194, 91, 0.28);
+}
+
+.bio {
+  margin-top: 14px;
+  min-height: 48px;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.tag {
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f4f8ff;
+  font-size: 0.9rem;
+}
+
+.footerMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  font-size: 0.92rem;
+  flex-wrap: wrap;
+}
+
+.overlayLike,
+.overlaySkip {
+  position: absolute;
+  top: 24px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  padding: 10px 16px;
+  border: 3px solid currentColor;
+  border-radius: 16px;
+  z-index: 3;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+
+.overlayLike {
+  right: 18px;
+  color: #74f1b5;
+  transform: rotate(10deg);
+}
+
+.overlaySkip {
+  left: 18px;
+  color: #ff8787;
+  transform: rotate(-10deg);
+}

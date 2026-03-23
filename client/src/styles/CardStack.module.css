@@ -1,0 +1,16 @@
+.swipePage {
+  min-height: calc(100vh - 180px);
+}
+
+.stackWrap {
+  position: relative;
+  width: min(420px, 100%);
+  margin: 20px auto 0;
+  height: 620px;
+}
+
+@media (max-width: 640px) {
+  .stackWrap {
+    height: 560px;
+  }
+}
