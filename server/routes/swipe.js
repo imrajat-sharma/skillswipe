@@ -52,6 +52,7 @@ router.get('/next', isAuthenticated, async (req, res) => {
     if (swipesLeft <= 0) {
       return res.json({ profiles: [], swipesLeft, message: 'Daily swipe limit reached.' });
     }
+    
 
     const candidates = await User.find({
       _id: { $nin: [...user.swipedUsers, user._id] },
