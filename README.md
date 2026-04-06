@@ -9,56 +9,6 @@ SkillSwipe is a production-style professional networking app for Delhi/NCR techi
 - Auth: Passport Local, optional Google OAuth
 - Deployment: Vercel for the client, Render or Railway for the server
 
-## Project Structure
-
-```text
-SkillSwipe/
-  client/
-    src/
-      components/
-        AppShell.jsx
-        Loader.jsx
-        ProfileCard.jsx
-        ProtectedRoute.jsx
-        SwipeCard.jsx
-      context/
-        AuthContext.jsx
-      pages/
-        Dashboard.jsx
-        Landing.jsx
-        Login.jsx
-        Matches.jsx
-        Profile.jsx
-        Register.jsx
-        Swipe.jsx
-      styles/
-        CardStack.module.css
-        SwipeCard.module.css
-      App.jsx
-      App.css
-      index.css
-      main.jsx
-    .env.example
-    package.json
-  server/
-    config/
-      passport.js
-    middleware/
-      isAuthenticated.js
-    models/
-      Match.js
-      User.js
-    routes/
-      auth.js
-      matches.js
-      profile.js
-      swipe.js
-    uploads/
-    .env.example
-    package.json
-    server.js
-```
-
 ## Features
 
 - Email/password registration and login with Passport Local
@@ -79,24 +29,24 @@ SkillSwipe/
 ### Client: `client/.env`
 
 ```env
-VITE_API_URL=http://localhost:5000/api
-VITE_API_HOST=http://localhost:5000
+VITE_API_URL= 
+VITE_API_HOST= 
 ```
 
 ### Server: `server/.env`
 
 ```env
 PORT=5000
-MONGO_URI=mongodb://127.0.0.1:27017/skillswipe
-SESSION_SECRET=replace-with-a-long-random-secret
-CLIENT_URL=http://localhost:5173
+MONGO_URI= 
+SESSION_SECRET= 
+CLIENT_URL= 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+GOOGLE_CALLBACK_URL= 
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
-SEED_DEFAULT_PASSWORD=skillswipe123
+SEED_DEFAULT_PASSWORD= 
 ```
 
 ## Local Setup
