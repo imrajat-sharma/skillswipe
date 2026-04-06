@@ -5,6 +5,10 @@ const path = require('path');
 const isAuthenticated = require('../middleware/isAuthenticated');
 const User = require('../models/User');
 const { cloudinary, hasCloudinaryConfig } = require('../utils/cloudinary');
+const asyncHandler = require('../utils/asyncHandler');
+const env = require('../config/env');
+const { buildCacheKey, deleteCacheByPrefixes, deleteCacheKeys, getCachedJson, setCachedJson } = require('../utils/cache');
+const { formatUser } = require('../utils/userSerializer');
 
 const router = express.Router();
 
@@ -43,24 +47,6 @@ const uploadToCloudinary = async (filePath) => {
   }
 };
 
-const formatUser = (user) => ({
-  _id: user._id,
-  name: user.name,
-  email: user.email,
-  roles: user.roles,
-  bio: user.bio,
-  skills: user.skills,
-  location: user.location,
-  pincode: user.pincode,
-  availability: user.availability,
-  photo: user.photo,
-  isProfileComplete: user.isProfileComplete,
-  swipesToday: user.swipesToday,
-  dailySwipeLimit: user.dailySwipeLimit,
-  swipesLeftToday: Math.max(user.dailySwipeLimit - user.swipesToday, 0),
-  createdAt: user.createdAt,
-});
-
 const parseList = (value) => {
   if (Array.isArray(value)) {
     return value.map((item) => item.trim()).filter(Boolean);
@@ -76,50 +62,62 @@ const parseList = (value) => {
     .filter(Boolean);
 };
 
-router.get('/', isAuthenticated, (req, res) => {
-  return res.json({ user: formatUser(req.user) });
-});
+router.get('/', isAuthenticated, asyncHandler(async (req, res) => {
+  const cacheKey = buildCacheKey('profile', req.user._id);
+  const cachedResponse = await getCachedJson(cacheKey);
 
-router.put('/', isAuthenticated, upload.single('photo'), async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    const { bio, availability, location, pincode } = req.body;
-    const roles = parseList(req.body.roles);
-    const skills = parseList(req.body.skills);
-
-    if (!roles.length) {
-      return res.status(400).json({ message: 'Select at least one role.' });
-    }
-
-    if (!skills.length) {
-      return res.status(400).json({ message: 'Add at least one skill.' });
-    }
-
-    if (!bio || bio.trim().length > 200) {
-      return res.status(400).json({ message: 'Bio is required and must be 200 characters or less.' });
-    }
-
-    user.bio = bio.trim();
-    user.roles = roles;
-    user.skills = skills;
-    user.location = location?.trim() || 'Delhi/NCR';
-    user.pincode = pincode?.trim() || '';
-    user.availability = availability?.trim() || '';
-
-    if (req.file) {
-      user.photo = hasCloudinaryConfig
-        ? await uploadToCloudinary(req.file.path)
-        : `/uploads/${req.file.filename}`;
-    }
-
-    user.isProfileComplete = Boolean(user.photo && user.bio && user.skills.length && user.roles.length && user.availability);
-
-    await user.save();
-
-    return res.json({ user: formatUser(user) });
-  } catch (error) {
-    return res.status(500).json({ message: error.message || 'Unable to update profile.' });
+  if (cachedResponse) {
+    return res.json(cachedResponse);
   }
-});
+
+  const response = { user: formatUser(req.user) };
+  await setCachedJson(cacheKey, response, env.profileCacheTtlSeconds);
+  return res.json(response);
+}));
+
+router.put('/', isAuthenticated, upload.single('photo'), asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  const { bio, availability, location, pincode } = req.body;
+  const roles = parseList(req.body.roles);
+  const skills = parseList(req.body.skills);
+
+  if (!roles.length) {
+    return res.status(400).json({ message: 'Select at least one role.' });
+  }
+
+  if (!skills.length) {
+    return res.status(400).json({ message: 'Add at least one skill.' });
+  }
+
+  if (!bio || bio.trim().length > 200) {
+    return res.status(400).json({ message: 'Bio is required and must be 200 characters or less.' });
+  }
+
+  user.bio = bio.trim();
+  user.roles = roles;
+  user.skills = skills;
+  user.location = location?.trim() || 'Delhi/NCR';
+  user.pincode = pincode?.trim() || '';
+  user.availability = availability?.trim() || '';
+
+  if (req.file) {
+    user.photo = hasCloudinaryConfig
+      ? await uploadToCloudinary(req.file.path)
+      : `/uploads/${req.file.filename}`;
+  }
+
+  user.isProfileComplete = Boolean(user.photo && user.bio && user.skills.length && user.roles.length && user.availability);
+
+  await user.save();
+
+  await deleteCacheKeys(
+    buildCacheKey('profile', user._id),
+    buildCacheKey('swipe-next', user._id, 1, 10),
+    buildCacheKey('matches', user._id, 1, 10)
+  );
+  await deleteCacheByPrefixes(buildCacheKey('swipe-next', user._id), buildCacheKey('matches', user._id));
+
+  return res.json({ user: formatUser(user) });
+}));
 
 module.exports = router;

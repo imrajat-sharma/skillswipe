@@ -5,7 +5,7 @@ SkillSwipe is a production-style professional networking app for Delhi/NCR techi
 ## Stack
 
 - Frontend: React 18, React Router v6, Context API, Vite, plain CSS/CSS modules
-- Backend: Node.js, Express, Passport.js sessions, MongoDB, Mongoose, Multer
+- Backend: Node.js, Express, Passport.js sessions, MongoDB, Redis, Mongoose, Multer
 - Auth: Passport Local, optional Google OAuth
 - Deployment: Vercel for the client, Render or Railway for the server
 
@@ -65,6 +65,7 @@ SkillSwipe/
 - Optional Google OAuth wiring in Passport
 - Session-based auth with protected routes
 - Forced profile completion before swiping
+- Posts with text or Markdown formatting, image captions, and polls
 - Photo upload with Multer and local storage
 - Cloudinary-ready profile uploads with local fallback when Cloudinary env vars are absent
 - Multi-select roles: Mentor, Mentee, Collaborator
@@ -72,6 +73,11 @@ SkillSwipe/
 - Recommendation scoring based on overlapping skills and role alignment
 - Mutual-like matching flow with match records and starter messages
 - Daily swipe limit simulation with dashboard visibility
+- Production middleware: Helmet, compression, request logging, request IDs, health/readiness checks
+- Rate limiting on auth and API routes
+- Optional Redis-backed sessions and read caching with MongoDB fallback
+- Paginated swipe recommendations and matches APIs
+- Backend integration tests with `node:test`, Supertest, and an isolated local MongoDB test instance
 - Responsive mobile-first UI
 
 ## Environment Variables
@@ -87,9 +93,20 @@ VITE_API_HOST=http://localhost:5000
 
 ```env
 PORT=5000
+NODE_ENV=development
 MONGO_URI=mongodb://127.0.0.1:27017/skillswipe
+REDIS_URL=redis://127.0.0.1:6379
 SESSION_SECRET=replace-with-a-long-random-secret
 CLIENT_URL=http://localhost:5173
+LOG_LEVEL=debug
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX=200
+AUTH_RATE_LIMIT_MAX=20
+PROFILE_CACHE_TTL_SECONDS=120
+MATCHES_CACHE_TTL_SECONDS=60
+SWIPE_CACHE_TTL_SECONDS=45
+POSTS_CACHE_TTL_SECONDS=60
+SESSION_TTL_SECONDS=604800
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
@@ -108,11 +125,14 @@ SEED_DEFAULT_PASSWORD=skillswipe123
    - `server/.env.example` to `server/.env`
    - `client/.env.example` to `client/.env`
 3. Start MongoDB locally or point `MONGO_URI` at Atlas.
-4. Run the backend:
+4. Start Redis locally or leave `REDIS_URL` empty to use MongoDB-backed sessions without cache.
+5. Run the backend:
    - `cd server && npm run dev`
-5. Run the frontend:
+6. Run the frontend:
    - `cd client && npm run dev`
-6. Open `http://localhost:5173`
+7. Open `http://localhost:5173`
+8. Optional containerized backend stack:
+   - `docker compose up --build`
 
 ## Seed Demo Profiles
 
@@ -122,6 +142,8 @@ SEED_DEFAULT_PASSWORD=skillswipe123
 
 ## API Overview
 
+- `GET /api/health`
+- `GET /api/ready`
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
@@ -129,9 +151,14 @@ SEED_DEFAULT_PASSWORD=skillswipe123
 - `GET /api/auth/google`
 - `GET /api/profile`
 - `PUT /api/profile`
+- `GET /api/posts`
+- `POST /api/posts`
+- `DELETE /api/posts/:postId`
 - `GET /api/swipe/next`
 - `POST /api/swipe/action`
 - `GET /api/matches`
+
+`GET /api/posts`, `GET /api/swipe/next`, and `GET /api/matches` support `page` and `limit` query params.
 
 ## Deployment Notes
 
@@ -147,6 +174,7 @@ SEED_DEFAULT_PASSWORD=skillswipe123
 - Use `npm start`
 - Set all env vars from `server/.env.example`
 - Point `MONGO_URI` to MongoDB Atlas or another hosted MongoDB
+- Point `REDIS_URL` to Redis for production session storage and response caching. If omitted, MongoDB-backed sessions still work.
 - Ensure `CLIENT_URL` matches the deployed Vercel domain
 - If using sessions cross-origin in production, keep cookie settings and CORS aligned with your final domains
 

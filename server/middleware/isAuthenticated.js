@@ -3,5 +3,8 @@ module.exports = (req, res, next) => {
     return next();
   }
 
-  return res.status(401).json({ message: 'Please log in to continue.' });
+  return res.status(401).json({
+    message: 'Please log in to continue.',
+    requestId: req.requestId,
+  });
 };

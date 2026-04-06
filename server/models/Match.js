@@ -37,5 +37,6 @@ const matchSchema = new mongoose.Schema(
 );
 
 matchSchema.index({ users: 1 }, { unique: false });
+matchSchema.index({ users: 1, updatedAt: -1 });
 
 module.exports = mongoose.model('Match', matchSchema);

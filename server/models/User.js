@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema(
     googleId: {
       type: String,
       default: null,
+      index: true,
     },
     roles: {
       type: [String],
@@ -88,5 +89,7 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ skills: 1 });
 userSchema.index({ roles: 1 });
 userSchema.index({ location: 1 });
+userSchema.index({ isProfileComplete: 1, createdAt: -1 });
+userSchema.index({ lastSwipeDate: 1 });
 
 module.exports = mongoose.model('User', userSchema);

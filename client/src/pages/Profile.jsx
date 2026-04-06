@@ -1,141 +1,224 @@
-import { useEffect, useMemo, useState } from 'react';
-import Icon from '../components/Icon';
-import { useAuth } from '../context/AuthContext';
+import { Camera, MapPin, Save, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Avatar } from "../components/Avatar";
+import { Badge } from "../components/Badge";
+import { Button } from "../components/Button";
+import { EmptyState } from "../components/EmptyState";
+import PostCard from "../components/PostCard";
+import { Tabs } from "../components/Tabs";
+import { useAuth } from "../context/AuthContext";
 
-const ROLE_OPTIONS = ['Mentor', 'Mentee', 'Collaborator'];
-const SUGGESTED_SKILLS = ['React', 'Node.js', 'AI/ML', 'UI/UX', 'Product Design', 'Python', 'TypeScript', 'Next.js'];
-
-function Profile() {
-  const { api, user, setUser } = useAuth();
-  const [form, setForm] = useState({ bio: '', location: 'Delhi/NCR', pincode: '', availability: 'Weekends only', skills: [], roles: [], photo: null });
-  const [customSkill, setCustomSkill] = useState('');
-  const [preview, setPreview] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+export default function Profile() {
+  const { api, user, refreshUser } = useAuth();
+  const [form, setForm] = useState({
+    bio: "",
+    roles: "",
+    skills: "",
+    location: "",
+    pincode: "",
+    availability: "",
+  });
+  const [photoFile, setPhotoFile] = useState(null);
+  const [posts, setPosts] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
+
     setForm({
-      bio: user.bio || '',
-      location: user.location || 'Delhi/NCR',
-      pincode: user.pincode || '',
-      availability: user.availability || 'Weekends only',
-      skills: user.skills || [],
-      roles: user.roles || [],
-      photo: null,
+      bio: user.bio || "",
+      roles: (user.roles || []).join(", "),
+      skills: (user.skills || []).join(", "),
+      location: user.location || "",
+      pincode: user.pincode || "",
+      availability: user.availability || "",
     });
-    setPreview(user.photo?.startsWith('http') ? user.photo : user.photo ? `${import.meta.env.VITE_API_HOST || 'http://localhost:5000'}${user.photo}` : '');
   }, [user]);
 
-  const canSubmit = useMemo(() => form.roles.length > 0 && form.skills.length > 0 && form.bio.trim() && form.availability.trim(), [form]);
+  useEffect(() => {
+    const loadPosts = async () => {
+      try {
+        const response = await api.get("/posts?limit=20&page=1");
+        setPosts((response.data.posts || []).filter((post) => post.author?._id === user?._id));
+      } catch {
+        setPosts([]);
+      }
+    };
 
-  const toggleRole = (role) => setForm((prev) => ({ ...prev, roles: prev.roles.includes(role) ? prev.roles.filter((item) => item !== role) : [...prev.roles, role] }));
-  const toggleSkill = (skill) => setForm((prev) => ({ ...prev, skills: prev.skills.includes(skill) ? prev.skills.filter((item) => item !== skill) : [...prev.skills, skill] }));
+    if (user?._id) {
+      loadPosts();
+    }
+  }, [api, user?._id]);
 
-  const addCustomSkill = () => {
-    const nextSkill = customSkill.trim();
-    if (!nextSkill) return;
-    if (!form.skills.includes(nextSkill)) setForm((prev) => ({ ...prev, skills: [...prev.skills, nextSkill] }));
-    setCustomSkill('');
+  const profileStrength = useMemo(() => {
+    const checks = [user?.photo, user?.bio, user?.roles?.length, user?.skills?.length, user?.availability];
+    return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  }, [user]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
   };
 
-  const handleFile = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setForm((prev) => ({ ...prev, photo: file }));
-    setPreview(URL.createObjectURL(file));
-  };
-
-  const handleSubmit = async (event) => {
+  const handleSave = async (event) => {
     event.preventDefault();
-    setSaving(true);
-    setError('');
-    setMessage('');
     try {
+      setSaving(true);
+      setMessage("");
+      setError("");
+
       const payload = new FormData();
-      payload.append('bio', form.bio.trim());
-      payload.append('location', form.location.trim());
-      payload.append('pincode', form.pincode.trim());
-      payload.append('availability', form.availability.trim());
-      payload.append('skills', form.skills.join(','));
-      payload.append('roles', form.roles.join(','));
-      if (form.photo) payload.append('photo', form.photo);
-      const response = await api.put('/profile', payload, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setUser(response.data.user);
-      setMessage(response.data.user.isProfileComplete ? 'Profile saved. You are ready to swipe.' : 'Profile saved. Add any missing fields to unlock swiping.');
-    } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to save profile.');
+      payload.append("bio", form.bio);
+      payload.append("roles", form.roles);
+      payload.append("skills", form.skills);
+      payload.append("location", form.location);
+      payload.append("pincode", form.pincode);
+      payload.append("availability", form.availability);
+      if (photoFile) {
+        payload.append("photo", photoFile);
+      }
+
+      await api.put("/profile", payload);
+      await refreshUser();
+      setPhotoFile(null);
+      setMessage("Profile updated.");
+    } catch (saveError) {
+      setError(saveError?.response?.data?.message || "Unable to update your profile.");
     } finally {
       setSaving(false);
     }
   };
 
-  return (
-    <section className="profile-layout glass-panel page-shell floating-in">
-      <aside className="profile-sidebar floating-in">
-        <div className="avatar-frame">
-          {preview ? <img src={preview} alt={user?.name} /> : <div className="avatar-placeholder">{user?.name?.charAt(0) || 'S'}</div>}
-        </div>
-        <h2 style={{ marginBottom: 4 }}>{user?.name}</h2>
-        <p className="muted" style={{ marginTop: 0 }}>{user?.email}</p>
-        <div className="inline-banner"><Icon name="spark" size={16} /> Complete your profile with a photo, bio, skills, roles, and availability before your swipe queue opens.</div>
-        <div className="profile-side-list">
-          <div className="side-chip"><Icon name="location" size={14} /> {form.location || 'Delhi/NCR'}</div>
-          <div className="side-chip"><Icon name="briefcase" size={14} /> {(form.roles.length || 0)} role selections</div>
-          <div className="side-chip"><Icon name="bolt" size={14} /> {form.availability || 'Add availability'}</div>
-        </div>
-      </aside>
-
-      <div className="profile-editor floating-in">
-        <div className="section-heading">
-          <div>
-            <div className="kicker"><Icon name="user" size={14} /> Profile completion</div>
-            <h1 className="page-title">Make your first impression count</h1>
+  const tabs = [
+    {
+      label: "About",
+      content: (
+        <div className="mt-6 grid gap-5">
+          <div className="rounded-[1.5rem] bg-slate-50 p-5">
+            <h3 className="font-display text-xl font-bold text-slate-900">Bio</h3>
+            <p className="mt-3 whitespace-pre-wrap text-slate-600">{user?.bio || "Add a bio so people know what kind of collaborator you are."}</p>
           </div>
-          <span className="pill"><Icon name="spark" size={14} /> {form.bio.length}/200 bio chars</span>
-        </div>
-
-        <form className="profile-form" onSubmit={handleSubmit}>
-          <div className="form-row">
-            <label htmlFor="photo">Profile photo</label>
-            <input id="photo" type="file" accept="image/*" onChange={handleFile} />
-          </div>
-          <div className="form-row">
-            <label htmlFor="bio">Professional bio</label>
-            <textarea id="bio" name="bio" maxLength="200" value={form.bio} onChange={(event) => setForm((prev) => ({ ...prev, bio: event.target.value }))} placeholder="Product-minded frontend engineer mentoring early-career developers and open to weekend AI prototype builds." />
-          </div>
-          <div className="form-row">
-            <label>Role focus</label>
-            <div className="role-picker">
-              {ROLE_OPTIONS.map((role) => <button type="button" className={`role-chip ${form.roles.includes(role) ? 'active' : ''}`} key={role} onClick={() => toggleRole(role)}>{role}</button>)}
+          <div className="rounded-[1.5rem] bg-slate-50 p-5">
+            <h3 className="font-display text-xl font-bold text-slate-900">Skills</h3>
+            <div className="mt-4 chip-group">
+              {(user?.skills || []).length ? (
+                user.skills.map((skill) => <Badge key={skill} variant="primary">{skill}</Badge>)
+              ) : (
+                <p className="text-slate-500">No skills added yet.</p>
+              )}
             </div>
           </div>
-          <div className="form-row">
-            <label>Skills and tags</label>
-            <div className="tag-cloud">
-              {SUGGESTED_SKILLS.map((skill) => <button type="button" key={skill} className={`skill-tag ${form.skills.includes(skill) ? 'active' : ''}`} onClick={() => toggleSkill(skill)}>{skill}</button>)}
+        </div>
+      ),
+    },
+    {
+      label: "Posts",
+      content: (
+        <div className="mt-6 grid gap-4">
+          {posts.length ? posts.map((post) => <PostCard key={post._id} post={post} onDelete={() => {}} deleting={false} />) : (
+            <div className="page-surface rounded-[2rem]">
+              <EmptyState title="No posts yet" description="Your published posts will show up here after you share your first update." />
             </div>
-            <div className="custom-skill-row">
-              <input type="text" value={customSkill} onChange={(event) => setCustomSkill(event.target.value)} placeholder="Add a custom skill" />
-              <button type="button" className="secondary-btn icon-btn" onClick={addCustomSkill}><Icon name="check" size={16} /> Add</button>
-            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      label: "Edit",
+      content: (
+        <form onSubmit={handleSave} className="mt-6 grid gap-4">
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-slate-700">Bio</span>
+            <textarea className="textarea" name="bio" value={form.bio} onChange={handleChange} maxLength={200} />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-slate-700">Roles</span>
+            <input className="input" name="roles" value={form.roles} onChange={handleChange} placeholder="Mentor, Collaborator" />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-slate-700">Skills</span>
+            <input className="input" name="skills" value={form.skills} onChange={handleChange} placeholder="Node.js, React, Product Design" />
+          </label>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-700">Location</span>
+              <input className="input" name="location" value={form.location} onChange={handleChange} />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-700">Pincode</span>
+              <input className="input" name="pincode" value={form.pincode} onChange={handleChange} />
+            </label>
           </div>
-          <div className="double-grid">
-            <div className="form-row"><label htmlFor="location">Location</label><input id="location" name="location" value={form.location} onChange={(event) => setForm((prev) => ({ ...prev, location: event.target.value }))} /></div>
-            <div className="form-row"><label htmlFor="pincode">Pincode</label><input id="pincode" name="pincode" value={form.pincode} onChange={(event) => setForm((prev) => ({ ...prev, pincode: event.target.value }))} /></div>
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-slate-700">Availability</span>
+            <input className="input" name="availability" value={form.availability} onChange={handleChange} placeholder="Weekends, evenings, full-time collab" />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-slate-700">Profile photo</span>
+            <input type="file" accept="image/*" className="input" onChange={(event) => setPhotoFile(event.target.files?.[0] || null)} />
+          </label>
+          <div className="flex justify-end">
+            <Button type="submit" variant="primary" isLoading={saving}>
+              <Save size={16} />
+              Save changes
+            </Button>
           </div>
-          <div className="form-row">
-            <label htmlFor="availability">Availability</label>
-            <input id="availability" name="availability" value={form.availability} onChange={(event) => setForm((prev) => ({ ...prev, availability: event.target.value }))} placeholder="Weekends only / Full-time collab / Evenings" />
-          </div>
-          {message ? <div className="success-banner"><Icon name="check" size={16} /> {message}</div> : null}
-          {error ? <div className="error-banner"><Icon name="x" size={16} /> {error}</div> : null}
-          <button type="submit" className="primary-btn icon-btn" disabled={!canSubmit || saving}><Icon name="spark" size={18} /> {saving ? 'Saving profile...' : 'Save profile'}</button>
         </form>
+      ),
+    },
+  ];
+
+  return (
+    <section className="page-container pt-5 md:pt-7">
+      <div className="grid gap-4 lg:grid-cols-[290px_minmax(0,1fr)]">
+        <aside className="page-surface rounded-[1.6rem] p-4 md:p-5">
+          <div className="flex flex-col items-center text-center">
+            <Avatar name={user?.name} image={user?.photo} size="xl" />
+            <h1 className="h3 mt-4 text-slate-900">{user?.name || "Your profile"}</h1>
+            <p className="mt-1.5 text-xs text-slate-500">{user?.email}</p>
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary-100 px-3 py-1.5 text-xs font-semibold text-primary-800">
+              <Sparkles size={13} />
+              {profileStrength}% complete
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2.5 rounded-[1.2rem] bg-slate-50 p-4 text-xs text-slate-600">
+            <div className="flex items-center gap-2">
+              <MapPin size={14} className="text-accent-600" />
+              {user?.location || "Delhi/NCR"}
+            </div>
+            <div className="flex items-center gap-2">
+              <Camera size={14} className="text-secondary-600" />
+              {user?.availability || "Add availability"}
+            </div>
+          </div>
+
+          <div className="mt-6 chip-group">
+            {(user?.roles || []).map((role) => (
+              <Badge key={role} variant="secondary">{role}</Badge>
+            ))}
+          </div>
+        </aside>
+
+        <div className="page-surface rounded-[1.6rem] p-4 md:p-6">
+          <div className="section-label">Profile</div>
+          <h2 className="h2 mt-2 text-slate-900">Show people how you like to build</h2>
+          <p className="mt-2.5 max-w-3xl text-sm leading-6 text-slate-600">
+            Your profile controls who sees you in the discover queue and gives context to anyone who lands on your posts.
+          </p>
+
+          {message ? <div className="status-message success mt-5">{message}</div> : null}
+          {error ? <div className="status-message error mt-5">{error}</div> : null}
+
+          <div className="mt-6">
+            <Tabs tabs={tabs} defaultTab={0} />
+          </div>
+        </div>
       </div>
     </section>
   );
 }
-
-export default Profile;

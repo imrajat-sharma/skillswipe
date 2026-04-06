@@ -105,3 +105,4 @@ seedProfiles().catch(async (error) => {
   await mongoose.disconnect();
   process.exit(1);
 });
+
