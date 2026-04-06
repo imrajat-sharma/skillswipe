@@ -10,7 +10,7 @@ const Post = require('../models/Post');
 const { cloudinary, hasCloudinaryConfig } = require('../utils/cloudinary');
 const { buildCacheKey, deleteCacheByPrefixes, getCachedJson, setCachedJson } = require('../utils/cache');
 const { createPaginationMeta, parsePagination } = require('../utils/pagination');
-const { formatPost } = require('../utils/postSerializer');
+const { formatComment, formatPost } = require('../utils/postSerializer');
 
 const router = express.Router();
 
@@ -76,6 +76,16 @@ const parsePollOptions = (options) => {
     .filter((value, index, all) => all.indexOf(value) === index)
     .map((text) => ({ text }));
 };
+
+const hasUserId = (values, userId) => values.some((value) => value?.toString() === userId.toString());
+
+const loadPostForFeed = async (postId) =>
+  Post.findById(postId).populate('author', 'name photo roles');
+
+const loadPostForComments = async (postId) =>
+  Post.findById(postId)
+    .populate('author', 'name photo roles')
+    .populate('comments.author', 'name photo roles');
 
 router.get('/', isAuthenticated, asyncHandler(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query, { limit: 10, maxLimit: 25 });
@@ -187,11 +197,132 @@ router.post('/', isAuthenticated, upload.array('images', 4), asyncHandler(async 
   }
 
   const post = await Post.create(payload);
-  const populatedPost = await Post.findById(post._id).populate('author', 'name photo roles');
+  const populatedPost = await loadPostForFeed(post._id);
 
   await deleteCacheByPrefixes(buildCacheKey('posts'));
 
   return res.status(201).json({
+    post: formatPost(populatedPost, req.user._id),
+  });
+}));
+
+router.get('/:postId/comments', isAuthenticated, asyncHandler(async (req, res) => {
+  const { page, limit, skip } = parsePagination(req.query, { limit: 10, maxLimit: 50 });
+  const post = await loadPostForComments(req.params.postId);
+
+  if (!post) {
+    return res.status(404).json({ message: 'Post not found.' });
+  }
+
+  const total = post.comments.length;
+  const comments = post.comments.slice(skip, skip + limit).map(formatComment);
+
+  return res.json({
+    comments,
+    pagination: createPaginationMeta({ page, limit, total }),
+  });
+}));
+
+router.post('/:postId/like', isAuthenticated, asyncHandler(async (req, res) => {
+  const post = await Post.findById(req.params.postId);
+
+  if (!post) {
+    return res.status(404).json({ message: 'Post not found.' });
+  }
+
+  if (!hasUserId(post.likedBy, req.user._id)) {
+    post.likedBy.push(req.user._id);
+    await post.save();
+  }
+
+  const populatedPost = await loadPostForFeed(post._id);
+  await deleteCacheByPrefixes(buildCacheKey('posts'));
+
+  return res.json({
+    message: 'Post liked successfully.',
+    liked: true,
+    post: formatPost(populatedPost, req.user._id),
+  });
+}));
+
+router.delete('/:postId/like', isAuthenticated, asyncHandler(async (req, res) => {
+  const post = await Post.findById(req.params.postId);
+
+  if (!post) {
+    return res.status(404).json({ message: 'Post not found.' });
+  }
+
+  const likedBy = post.likedBy.filter((userId) => userId?.toString() !== req.user._id.toString());
+
+  if (likedBy.length !== post.likedBy.length) {
+    post.likedBy = likedBy;
+    await post.save();
+  }
+
+  const populatedPost = await loadPostForFeed(post._id);
+  await deleteCacheByPrefixes(buildCacheKey('posts'));
+
+  return res.json({
+    message: 'Post unliked successfully.',
+    liked: false,
+    post: formatPost(populatedPost, req.user._id),
+  });
+}));
+
+router.post('/:postId/comments', isAuthenticated, asyncHandler(async (req, res) => {
+  const content = String(req.body.content || '').trim();
+
+  if (!content) {
+    return res.status(400).json({ message: 'Comment content is required.' });
+  }
+
+  if (content.length > 1000) {
+    return res.status(400).json({ message: 'Comment content must be 1000 characters or fewer.' });
+  }
+
+  const post = await Post.findById(req.params.postId);
+
+  if (!post) {
+    return res.status(404).json({ message: 'Post not found.' });
+  }
+
+  post.comments.push({
+    author: req.user._id,
+    content,
+  });
+
+  await post.save();
+
+  const populatedPost = await loadPostForComments(post._id);
+  const createdComment = populatedPost.comments[populatedPost.comments.length - 1];
+
+  await deleteCacheByPrefixes(buildCacheKey('posts'));
+
+  return res.status(201).json({
+    message: 'Comment added successfully.',
+    comment: formatComment(createdComment),
+    post: formatPost(populatedPost, req.user._id),
+  });
+}));
+
+router.post('/:postId/share', isAuthenticated, asyncHandler(async (req, res) => {
+  const post = await Post.findById(req.params.postId);
+
+  if (!post) {
+    return res.status(404).json({ message: 'Post not found.' });
+  }
+
+  if (!hasUserId(post.sharedBy, req.user._id)) {
+    post.sharedBy.push(req.user._id);
+    await post.save();
+  }
+
+  const populatedPost = await loadPostForFeed(post._id);
+  await deleteCacheByPrefixes(buildCacheKey('posts'));
+
+  return res.status(200).json({
+    message: 'Post shared successfully.',
+    shared: true,
     post: formatPost(populatedPost, req.user._id),
   });
 }));

@@ -17,6 +17,23 @@ const pollOptionSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const postCommentSchema = new mongoose.Schema(
+  {
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    content: {
+      type: String,
+      trim: true,
+      required: true,
+      maxlength: 1000,
+    },
+  },
+  { timestamps: true }
+);
+
 const postSchema = new mongoose.Schema(
   {
     author: {
@@ -72,6 +89,24 @@ const postSchema = new mongoose.Schema(
         type: Date,
         default: null,
       },
+    },
+    likedBy: {
+      type: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      }],
+      default: [],
+    },
+    sharedBy: {
+      type: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      }],
+      default: [],
+    },
+    comments: {
+      type: [postCommentSchema],
+      default: [],
     },
   },
   { timestamps: true }

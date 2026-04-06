@@ -23,11 +23,14 @@ const messageSchema = new mongoose.Schema(
 
 const matchSchema = new mongoose.Schema(
   {
-    users: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    }],
+    users: {
+      type: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+      }],
+      default: [],
+    },
     messages: {
       type: [messageSchema],
       default: [],

@@ -2,6 +2,7 @@ const express = require('express');
 const passport = require('passport');
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
+const isAuthenticated = require('../middleware/isAuthenticated');
 const asyncHandler = require('../utils/asyncHandler');
 const { formatUser } = require('../utils/userSerializer');
 const { authRateLimiter } = require('../middleware/rateLimit');
@@ -9,9 +10,9 @@ const { buildCacheKey, deleteCacheByPrefixes, deleteCacheKeys } = require('../ut
 
 const router = express.Router();
 const getUserCacheKeys = (userId) => [
-  buildCacheKey('profile', userId),
-  buildCacheKey('swipe-next', userId, 1, 10),
-  buildCacheKey('matches', userId, 1, 10),
+  ...(userId ? [buildCacheKey('profile', userId)] : []),
+  ...(userId ? [buildCacheKey('swipe-next', userId, 1, 10)] : []),
+  ...(userId ? [buildCacheKey('matches', userId, 1, 10)] : []),
 ];
 
 router.post('/register', authRateLimiter, asyncHandler(async (req, res) => {
@@ -80,28 +81,55 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.
   );
 }
 
-router.get('/me', (req, res) => {
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
-    return res.status(401).json({ message: 'Not authenticated.' });
-  }
-
+router.get('/me', isAuthenticated, (req, res) => {
   return res.json({ user: formatUser(req.user) });
 });
 
 router.post('/logout', (req, res, next) => {
   const userId = req.user?._id?.toString();
-  req.logout((error) => {
-    if (error) {
-      return next(error);
+
+  const clearSession = () => {
+    if (!req.session) {
+      res.clearCookie('skillswipe.sid');
+      return res.json({ message: 'Logged out successfully.' });
     }
 
     req.session.destroy(() => {
       res.clearCookie('skillswipe.sid');
-      deleteCacheKeys(...getUserCacheKeys(userId));
-      deleteCacheByPrefixes(buildCacheKey('swipe-next', userId), buildCacheKey('matches', userId));
       return res.json({ message: 'Logged out successfully.' });
     });
-  });
+  };
+
+  const clearCaches = async () => {
+    if (!userId) {
+      return;
+    }
+
+    await deleteCacheKeys(...getUserCacheKeys(userId));
+    await deleteCacheByPrefixes(buildCacheKey('swipe-next', userId), buildCacheKey('matches', userId));
+  };
+
+  const finishLogout = async () => {
+    try {
+      await clearCaches();
+    } catch (error) {
+      return next(error);
+    }
+
+    return clearSession();
+  };
+
+  if (typeof req.logout === 'function') {
+    return req.logout((error) => {
+      if (error) {
+        return next(error);
+      }
+
+      return finishLogout();
+    });
+  }
+
+  return finishLogout();
 });
 
 module.exports = router;

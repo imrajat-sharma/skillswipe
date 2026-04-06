@@ -49,17 +49,30 @@ const uploadToCloudinary = async (filePath) => {
 
 const parseList = (value) => {
   if (Array.isArray(value)) {
-    return value.map((item) => item.trim()).filter(Boolean);
+    return Array.from(new Set(value.map((item) => item.trim()).filter(Boolean)));
   }
 
   if (!value) {
     return [];
   }
 
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
+  return Array.from(
+    new Set(
+      value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  );
+};
+
+const normalizeRole = (role) => {
+  const value = String(role || '').trim();
+  if (!value) {
+    return '';
+  }
+
+  return value.toLowerCase() === 'mentee' ? 'Student' : value;
 };
 
 router.get('/', isAuthenticated, asyncHandler(async (req, res) => {
@@ -77,8 +90,12 @@ router.get('/', isAuthenticated, asyncHandler(async (req, res) => {
 
 router.put('/', isAuthenticated, upload.single('photo'), asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
+  if (!user) {
+    return res.status(404).json({ message: 'Your account could not be found.' });
+  }
+
   const { bio, availability, location, pincode } = req.body;
-  const roles = parseList(req.body.roles);
+  const roles = parseList(req.body.roles).map(normalizeRole).filter(Boolean);
   const skills = parseList(req.body.skills);
 
   if (!roles.length) {
@@ -115,7 +132,7 @@ router.put('/', isAuthenticated, upload.single('photo'), asyncHandler(async (req
     buildCacheKey('swipe-next', user._id, 1, 10),
     buildCacheKey('matches', user._id, 1, 10)
   );
-  await deleteCacheByPrefixes(buildCacheKey('swipe-next', user._id), buildCacheKey('matches', user._id));
+  await deleteCacheByPrefixes(buildCacheKey('swipe-next', user._id), buildCacheKey('matches', user._id), buildCacheKey('swipe-filters'));
 
   return res.json({ user: formatUser(user) });
 }));

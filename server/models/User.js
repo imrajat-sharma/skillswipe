@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const ALLOWED_ROLES = ['Mentor', 'Mentee', 'Collaborator'];
+const ALLOWED_ROLES = ['Student', 'Mentor', 'Collaborator', 'Mentee'];
 
 const userSchema = new mongoose.Schema(
   {
