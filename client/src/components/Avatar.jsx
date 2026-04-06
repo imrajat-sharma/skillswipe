@@ -1,11 +1,8 @@
 import React from "react";
+import { buildApiAssetUrl } from "../utils/formatters";
 
-export const Avatar = ({
-  name,
-  image,
-  size = "md",
-  status = null,
-}) => {
+export const Avatar = ({ name, image, size = "md", status = null }) => {
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
   const sizeClasses = {
     xs: "w-8 h-8 text-xs",
     sm: "w-10 h-10 text-sm",
@@ -21,26 +18,28 @@ export const Avatar = ({
       .join("")
       .toUpperCase() || "?";
 
+  const avatarSource = buildApiAssetUrl(image, apiBaseUrl);
+
   return (
     <div className="relative inline-block">
-      {image ? (
+      {avatarSource ? (
         <img
-          src={image}
+          src={avatarSource}
           alt={name}
-          className={`${sizeClasses[size]} rounded-full object-cover border-2 border-white`}
+          className={`${sizeClasses[size]} rounded-full border-2 border-white object-cover`}
         />
       ) : (
         <div
-          className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 text-white font-bold flex items-center justify-center border-2 border-white`}
+          className={`${sizeClasses[size]} flex items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-primary-500 to-secondary-500 text-white font-bold`}
         >
           {initials}
         </div>
       )}
-      {status && (
+      {status ? (
         <span
-          className={`absolute bottom-0 right-0 ${size === "xs" ? "w-2 h-2" : size === "sm" ? "w-2.5 h-2.5" : "w-3 h-3"} rounded-full ${status === "online" ? "bg-green-500" : "bg-gray-400"} border-2 border-white`}
+          className={`absolute bottom-0 right-0 ${size === "xs" ? "h-2 w-2" : size === "sm" ? "h-2.5 w-2.5" : "h-3 w-3"} rounded-full ${status === "online" ? "bg-green-500" : "bg-gray-400"} border-2 border-white`}
         />
-      )}
+      ) : null}
     </div>
   );
 };

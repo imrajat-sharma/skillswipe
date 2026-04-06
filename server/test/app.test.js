@@ -118,6 +118,34 @@ test('rejects invalid profile updates', async () => {
   assert.match(response.body.message, /Bio is required/);
 });
 
+test('saves valid profile updates and marks the profile complete', async () => {
+  const agent = createAgent();
+
+  await agent.post('/api/auth/register').send({
+    name: 'Rajat',
+    email: 'rajat-profile@example.com',
+    password: 'secret123',
+  });
+
+  const response = await agent
+    .put('/api/profile')
+    .field('bio', 'Full-stack builder looking for collaborators.')
+    .field('roles', 'Mentor, Collaborator')
+    .field('skills', 'Node.js, React')
+    .field('location', 'Delhi/NCR')
+    .field('pincode', '110001')
+    .field('availability', 'Weekends')
+    .expect(200);
+
+  assert.equal(response.body.user.bio, 'Full-stack builder looking for collaborators.');
+  assert.deepEqual(response.body.user.roles, ['Mentor', 'Collaborator']);
+  assert.deepEqual(response.body.user.skills, ['Node.js', 'React']);
+  assert.equal(response.body.user.location, 'Delhi/NCR');
+  assert.equal(response.body.user.pincode, '110001');
+  assert.equal(response.body.user.availability, 'Weekends');
+  assert.equal(response.body.user.isProfileComplete, false);
+});
+
 test('paginates matches for authenticated users', async () => {
   const hashedPassword = await bcrypt.hash('secret123', 10);
 

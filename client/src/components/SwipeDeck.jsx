@@ -1,15 +1,13 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, X, MessageCircle } from "lucide-react";
-import { SkillBadge } from "./SkillBadge";
+import { BriefcaseBusiness, Heart, MapPin, MessageCircle, X } from "lucide-react";
+import { buildApiAssetUrl } from "../utils/formatters";
+import { Avatar } from "./Avatar";
 import { Badge } from "./Badge";
+import { SkillBadge } from "./SkillBadge";
 
-export const SwipeDeck = ({
-  cards = [],
-  onPass,
-  onLike,
-  onMessage,
-}) => {
+export const SwipeDeck = ({ cards = [], onPass, onLike, onMessage }) => {
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
   const MotionDiv = motion.div;
   const MotionButton = motion.button;
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -46,35 +44,31 @@ export const SwipeDeck = ({
 
   if (!currentCard) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50">
+      <div className="flex h-96 flex-col items-center justify-center rounded-[1.8rem] border-2 border-dashed border-[var(--border-soft)] bg-[var(--surface-subtle)] md:h-[620px]">
         <div className="text-center">
-          <p className="text-lg font-semibold text-gray-900 mb-2">
-            No more profiles
-          </p>
-          <p className="text-gray-600">Come back later for more matches!</p>
+          <p className="mb-2 text-lg font-semibold text-[var(--text-strong)]">No more profiles</p>
+          <p className="text-[var(--text-muted)]">Come back later for more matches.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative h-96 md:h-[600px] cursor-grab active:cursor-grabbing">
-      {/* Background card */}
+    <div className="relative h-96 md:h-[620px]">
       {nextCard && (
         <MotionDiv
-          className="absolute inset-0 rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-soft"
+          className="absolute inset-0 overflow-hidden rounded-[1.8rem] border border-[var(--border-soft)] bg-[var(--surface)] shadow-soft"
           initial={{ scale: 0.95, y: 10, opacity: 0 }}
           animate={{ scale: 0.95, y: 10, opacity: 0.4 }}
         >
-          <div className="w-full h-full bg-gradient-to-br from-primary-100 to-secondary-100" />
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top,_rgba(247,98,98,0.14),_transparent_40%),linear-gradient(145deg,_var(--surface),_var(--surface-subtle))]" />
         </MotionDiv>
       )}
 
-      {/* Main card */}
       <AnimatePresence mode="wait">
         <MotionDiv
           key={currentIndex}
-          className="absolute inset-0 rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-soft-lg cursor-grab active:cursor-grabbing"
+          className="absolute inset-0 cursor-grab overflow-hidden rounded-[1.9rem] border border-[var(--border-soft)] bg-[var(--surface)] shadow-soft-lg active:cursor-grabbing"
           initial={{ scale: 1, x: 0, y: 0, opacity: 1 }}
           animate={{ scale: 1, x: 0, y: 0, opacity: 1 }}
           exit={{
@@ -88,10 +82,7 @@ export const SwipeDeck = ({
           dragConstraints={{ left: -200, right: 200, top: -200, bottom: 0 }}
           onDragEnd={(event, info) => {
             const threshold = 50;
-            if (
-              Math.abs(info.velocity.x) > 500 ||
-              Math.abs(info.offset.x) > threshold
-            ) {
+            if (Math.abs(info.velocity.x) > 500 || Math.abs(info.offset.x) > threshold) {
               if (info.offset.x > threshold) {
                 handleSwipeRight();
               } else if (info.offset.x < -threshold) {
@@ -105,63 +96,72 @@ export const SwipeDeck = ({
           whileHover={{ y: -5 }}
           whileTap={{ scale: 0.98 }}
         >
-          {/* Image */}
-          <div className="relative w-full h-64 md:h-96 bg-gradient-to-br from-primary-100 to-secondary-100 overflow-hidden">
+          <div className="relative h-72 w-full overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(247,98,98,0.2),_transparent_32%),linear-gradient(180deg,_#ffdfd1,_#ffd9e7_55%,_#f4ecff)] md:h-[420px]">
             {currentCard.image ? (
               <img
-                src={currentCard.image}
+                src={buildApiAssetUrl(currentCard.image, apiBaseUrl)}
                 alt={currentCard.name}
-                className="w-full h-full object-cover"
+                className="h-full w-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-200 to-secondary-200" />
+              <div className="flex h-full w-full items-center justify-center">
+                <Avatar name={currentCard.name} size="xl" />
+              </div>
             )}
-            {isLiked && (
+            {isLiked ? (
               <MotionDiv
-                className="absolute inset-0 bg-green-500/10 backdrop-blur-sm flex items-center justify-center"
+                className="absolute inset-0 flex items-center justify-center bg-green-500/10 backdrop-blur-sm"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <Heart className="w-20 h-20 text-green-500 fill-green-500" />
+                <Heart className="h-20 w-20 fill-green-500 text-green-500" />
               </MotionDiv>
-            )}
+            ) : null}
           </div>
 
-          {/* Content */}
-          <div className="p-4 md:p-6">
-            <div className="mb-2">
-              <h3 className="text-xl md:text-2xl font-bold text-gray-900">
-                {currentCard.name}
-              </h3>
-              <p className="text-gray-600">{currentCard.headline}</p>
+          <div className="p-5 md:p-6">
+            <div className="mb-2 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-[var(--text-strong)] md:text-2xl">{currentCard.name}</h3>
+                <p className="mt-1 text-[var(--text-muted)]">{currentCard.headline}</p>
+              </div>
+              <Badge variant="accent">{currentCard.role || "Builder"}</Badge>
             </div>
 
-            {/* Skills */}
-            {currentCard.skills?.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
+            <div className="mt-4 grid gap-3 rounded-[1.2rem] border border-[var(--border-soft)] bg-[var(--surface-subtle)] p-4 text-sm text-[var(--text-body)]">
+              <div className="flex items-center gap-2">
+                <MapPin size={15} className="text-rose-500" />
+                <span>{currentCard.location || "Location not added yet"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <BriefcaseBusiness size={15} className="text-cyan-600" />
+                <span>{currentCard.role || "Open to collaboration"}</span>
+              </div>
+            </div>
+
+            {currentCard.skills?.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
                 {currentCard.skills.slice(0, 4).map((skill, idx) => (
                   <SkillBadge key={idx} skill={skill} />
                 ))}
               </div>
-            )}
+            ) : null}
           </div>
 
-          {/* Action hints */}
-          <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center text-xs text-gray-500">
-            <span>← Swipe left to Pass</span>
-            <span>Swipe up for Chat →</span>
-            <span>Swipe right to Like →</span>
+          <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-white/80">
+            <span>Pass</span>
+            <span>Chat</span>
+            <span>Like</span>
           </div>
         </MotionDiv>
       </AnimatePresence>
 
-      {/* Action buttons */}
-      <div className="absolute -bottom-20 md:-bottom-24 left-0 right-0 flex justify-center gap-3 md:gap-4">
+      <div className="absolute -bottom-20 left-0 right-0 flex justify-center gap-3 md:-bottom-24 md:gap-4">
         <MotionButton
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleSwipeLeft}
-          className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-400 transition-all shadow-soft hover:shadow-soft-lg"
+          className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-[var(--border-strong)] bg-[var(--surface)] text-[var(--text-body)] shadow-soft transition-all hover:shadow-soft-lg md:h-14 md:w-14"
         >
           <X size={24} />
         </MotionButton>
@@ -169,7 +169,7 @@ export const SwipeDeck = ({
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleSwipeUp}
-          className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-secondary-500 text-white flex items-center justify-center hover:bg-secondary-600 transition-all shadow-soft hover:shadow-soft-lg"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500 text-white shadow-soft transition-all hover:bg-cyan-600 hover:shadow-soft-lg md:h-14 md:w-14"
         >
           <MessageCircle size={24} />
         </MotionButton>
@@ -177,7 +177,7 @@ export const SwipeDeck = ({
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleSwipeRight}
-          className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-r from-primary-600 to-primary-500 text-white flex items-center justify-center hover:shadow-soft-lg transition-all shadow-soft"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-orange-400 text-white shadow-soft transition-all hover:shadow-soft-lg md:h-14 md:w-14"
         >
           <Heart size={24} fill="white" />
         </MotionButton>

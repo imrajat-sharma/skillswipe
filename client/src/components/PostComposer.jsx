@@ -65,11 +65,11 @@ export default function PostComposer({ onCreate, submitting }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="page-surface rounded-[1.6rem] p-4 md:p-5">
+    <form onSubmit={handleSubmit} className="glass-panel rounded-[1.8rem] p-4 md:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="section-label">Community feed</div>
-          <h2 className="h3 mt-2.5 text-slate-900">Share an update, poll, or image drop</h2>
+          <div className="section-label">Create post</div>
+          <h2 className="h3 mt-2.5">Share an update, poll, or image drop</h2>
         </div>
         <div className="chip-group">
           {postModes.map(({ value, label, icon: Icon }) => (
@@ -78,7 +78,7 @@ export default function PostComposer({ onCreate, submitting }) {
               type="button"
               onClick={() => setType(value)}
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                type === value ? "bg-gradient-to-br from-primary-600 to-secondary-500 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                type === value ? "bg-gradient-to-br from-rose-500 to-orange-400 text-white" : "bg-[var(--surface-subtle)] text-[var(--text-muted)]"
               }`}
             >
               {createElement(Icon, { size: 14 })}
@@ -92,14 +92,14 @@ export default function PostComposer({ onCreate, submitting }) {
         {type === "text" && (
           <>
             <div className="grid gap-2">
-              <label className="text-xs font-semibold text-slate-600">Formatting</label>
+              <label className="text-xs font-semibold text-[var(--text-muted)]">Formatting</label>
               <select className="select" value={formatting} onChange={(event) => setFormatting(event.target.value)}>
                 <option value="plain">Plain text</option>
                 <option value="markdown">Markdown</option>
               </select>
             </div>
             <div className="grid gap-2">
-              <label className="text-xs font-semibold text-slate-600">What are you building?</label>
+              <label className="text-xs font-semibold text-[var(--text-muted)]">What are you building?</label>
               <textarea
                 className="textarea"
                 value={content}
@@ -113,7 +113,7 @@ export default function PostComposer({ onCreate, submitting }) {
         {type === "image" && (
           <>
             <div className="grid gap-2">
-              <label className="text-xs font-semibold text-slate-600">Caption</label>
+              <label className="text-xs font-semibold text-[var(--text-muted)]">Caption</label>
               <textarea
                 className="textarea"
                 value={caption}
@@ -122,7 +122,7 @@ export default function PostComposer({ onCreate, submitting }) {
               />
             </div>
             <div className="grid gap-2">
-              <label className="text-xs font-semibold text-slate-600">Images</label>
+              <label className="text-xs font-semibold text-[var(--text-muted)]">Images</label>
               <input
                 type="file"
                 accept="image/*"
@@ -130,7 +130,7 @@ export default function PostComposer({ onCreate, submitting }) {
                 onChange={(event) => setFiles(Array.from(event.target.files || []).slice(0, 4))}
                 className="input"
               />
-              {fileNames ? <p className="text-xs text-slate-500">{fileNames}</p> : null}
+              {fileNames ? <p className="text-xs text-[var(--text-muted)]">{fileNames}</p> : null}
             </div>
           </>
         )}
@@ -138,7 +138,7 @@ export default function PostComposer({ onCreate, submitting }) {
         {type === "poll" && (
           <>
             <div className="grid gap-2">
-              <label className="text-xs font-semibold text-slate-600">Question</label>
+              <label className="text-xs font-semibold text-[var(--text-muted)]">Question</label>
               <input
                 className="input"
                 value={question}
@@ -147,7 +147,7 @@ export default function PostComposer({ onCreate, submitting }) {
               />
             </div>
             <div className="grid gap-3">
-              <label className="text-xs font-semibold text-slate-600">Options</label>
+              <label className="text-xs font-semibold text-[var(--text-muted)]">Options</label>
               {options.map((option, index) => (
                 <input
                   key={`${index}-${type}`}
@@ -163,14 +163,14 @@ export default function PostComposer({ onCreate, submitting }) {
                 <button
                   type="button"
                   onClick={() => setOptions((current) => [...current, ""])}
-                  className="justify-self-start rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600"
+                  className="justify-self-start rounded-full bg-[var(--surface-subtle)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)]"
                 >
                   Add option
                 </button>
               ) : null}
             </div>
             <div className="grid gap-2">
-              <label className="text-xs font-semibold text-slate-600">Caption</label>
+              <label className="text-xs font-semibold text-[var(--text-muted)]">Caption</label>
               <textarea
                 className="textarea"
                 value={caption}
@@ -185,7 +185,7 @@ export default function PostComposer({ onCreate, submitting }) {
       {localError ? <div className="status-message error mt-4">{localError}</div> : null}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2.5">
-        <p className="text-xs text-slate-500">Posts are visible to the SkillSwipe community feed.</p>
+        <p className="text-xs text-[var(--text-muted)]">Posts are visible to the SkillSwipe community feed.</p>
         <div className="flex gap-3">
           <Button type="button" variant="ghost" onClick={resetForm}>
             Clear

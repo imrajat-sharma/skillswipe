@@ -1,118 +1,82 @@
 import React from "react";
-import { Heart, MessageCircle, Share2, MapPin, Briefcase } from "lucide-react";
+import { Briefcase, Heart, MapPin, MessageCircle } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { SkillBadge } from "./SkillBadge";
 import { Badge } from "./Badge";
 
-export const ProfileCard = ({
-  profile,
-  onLike,
-  onSkip,
-  onMessage,
-  variant = "compact",
-}) => {
-  const {
-    name,
-    headline,
-    image,
-    location,
-    skills = [],
-    role,
-    connections,
-    matchPercentage,
-    isPremium,
-  } = profile;
+export const ProfileCard = ({ profile, onLike, onSkip, onMessage, variant = "compact" }) => {
+  const { name, headline, image, location, skills = [], role, connections, matchPercentage, isPremium } = profile;
 
   if (variant === "compact") {
     return (
-      <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-soft hover:shadow-soft-lg transition-all duration-300 h-full flex flex-col">
-        {/* Image */}
-        <div className="relative h-64 md:h-80 bg-gradient-to-br from-primary-100 to-secondary-100 overflow-hidden group">
+      <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-[var(--surface)] shadow-soft transition-all duration-300 hover:shadow-soft-lg">
+        <div className="group relative h-64 overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(247,98,98,0.16),_transparent_38%),linear-gradient(135deg,_#ffe2d0,_#ffe2ea_55%,_#eef5ff)] md:h-80">
           {image ? (
-            <img
-              src={image}
-              alt={name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
+            <img src={image} alt={name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="flex h-full w-full items-center justify-center">
               <Avatar name={name} size="xl" />
             </div>
           )}
-          {isPremium && (
-            <Badge variant="accent" className="absolute top-4 right-4">
-              💎 Premium
+          {isPremium ? (
+            <Badge variant="accent" className="absolute right-4 top-4">
+              Premium
             </Badge>
-          )}
-          {matchPercentage && (
-            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5">
-              <p className="text-sm font-bold text-primary-600">
-                {matchPercentage}% Match
-              </p>
+          ) : null}
+          {matchPercentage ? (
+            <div className="absolute left-4 top-4 rounded-lg bg-white/90 px-3 py-1.5 backdrop-blur-sm dark:bg-slate-900/80">
+              <p className="text-sm font-bold text-rose-500">{matchPercentage}% Match</p>
             </div>
-          )}
+          ) : null}
         </div>
 
-        {/* Content */}
-        <div className="p-5 flex-1 flex flex-col">
-          {/* Header */}
+        <div className="flex flex-1 flex-col p-5">
           <div className="mb-3">
-            <h3 className="text-lg md:text-xl font-bold text-gray-900 line-clamp-1">
-              {name}
-            </h3>
-            <p className="text-sm text-gray-600 line-clamp-2">{headline}</p>
+            <h3 className="line-clamp-1 text-lg font-bold text-[var(--text-strong)] md:text-xl">{name}</h3>
+            <p className="line-clamp-2 text-sm text-[var(--text-muted)]">{headline}</p>
           </div>
 
-          {/* Meta */}
-          <div className="space-y-2 mb-4 flex-1">
-            {location && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MapPin size={16} className="text-primary-500" />
+          <div className="mb-4 flex-1 space-y-2">
+            {location ? (
+              <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                <MapPin size={16} className="text-rose-500" />
                 <span>{location}</span>
               </div>
-            )}
-            {role && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Briefcase size={16} className="text-secondary-500" />
+            ) : null}
+            {role ? (
+              <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                <Briefcase size={16} className="text-cyan-600" />
                 <span>{role}</span>
               </div>
-            )}
-            {connections && (
-              <p className="text-xs text-gray-500">
-                {connections} common connections
-              </p>
-            )}
+            ) : null}
+            {connections ? <p className="text-xs text-[var(--text-soft)]">{connections} common connections</p> : null}
           </div>
 
-          {/* Skills */}
-          {skills.length > 0 && (
+          {skills.length > 0 ? (
             <div className="mb-4 flex flex-wrap gap-2">
               {skills.slice(0, 3).map((skill, idx) => (
                 <SkillBadge key={idx} skill={skill} />
               ))}
-              {skills.length > 3 && (
-                <Badge variant="neutral">+{skills.length - 3}</Badge>
-              )}
+              {skills.length > 3 ? <Badge variant="neutral">+{skills.length - 3}</Badge> : null}
             </div>
-          )}
+          ) : null}
 
-          {/* Actions */}
-          <div className="flex gap-2 pt-4 border-t border-gray-200">
+          <div className="flex gap-2 border-t border-[var(--border-soft)] pt-4">
             <button
               onClick={onSkip}
-              className="flex-1 py-2.5 rounded-lg border-2 border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[var(--border-strong)] py-2.5 font-semibold text-[var(--text-body)] transition-all duration-200 hover:bg-[var(--surface-subtle)]"
             >
               <span>✕</span> Pass
             </button>
             <button
               onClick={onMessage}
-              className="flex-1 py-2.5 rounded-lg bg-secondary-100 text-secondary-700 font-semibold hover:bg-secondary-200 transition-all duration-200 flex items-center justify-center gap-2"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-cyan-50 py-2.5 font-semibold text-cyan-700 transition-all duration-200 hover:bg-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-300"
             >
               <MessageCircle size={18} /> Chat
             </button>
             <button
               onClick={onLike}
-              className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold hover:shadow-soft-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-95"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-rose-500 to-orange-400 py-2.5 font-semibold text-white transition-all duration-200 hover:shadow-soft-lg active:scale-95"
             >
               <Heart size={18} fill="white" /> Connect
             </button>
@@ -122,53 +86,47 @@ export const ProfileCard = ({
     );
   }
 
-  // Extended variant for profile view
   return (
-    <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-soft">
-      {/* Image banner */}
-      {image && (
-        <div className="h-96 md:h-full max-h-96 overflow-hidden bg-gray-200">
-          <img src={image} alt={name} className="w-full h-full object-cover" />
+    <div className="overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-[var(--surface)] shadow-soft">
+      {image ? (
+        <div className="max-h-96 overflow-hidden bg-[var(--surface-subtle)] md:h-full">
+          <img src={image} alt={name} className="h-full w-full object-cover" />
         </div>
-      )}
+      ) : null}
 
-      {/* Profile info */}
       <div className="p-6 md:p-8">
-        <div className="flex items-start justify-between mb-4">
+        <div className="mb-4 flex items-start justify-between">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-              {name}
-            </h2>
-            <p className="text-lg text-gray-600 mb-3">{headline}</p>
-            <div className="flex flex-wrap gap-3 text-sm text-gray-600">
-              {location && (
+            <h2 className="mb-2 text-2xl font-bold text-[var(--text-strong)] md:text-3xl">{name}</h2>
+            <p className="mb-3 text-lg text-[var(--text-muted)]">{headline}</p>
+            <div className="flex flex-wrap gap-3 text-sm text-[var(--text-muted)]">
+              {location ? (
                 <div className="flex items-center gap-1">
-                  <MapPin size={18} className="text-primary-500" />
+                  <MapPin size={18} className="text-rose-500" />
                   {location}
                 </div>
-              )}
-              {role && (
+              ) : null}
+              {role ? (
                 <div className="flex items-center gap-1">
-                  <Briefcase size={18} className="text-secondary-500" />
+                  <Briefcase size={18} className="text-cyan-600" />
                   {role}
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
-          {isPremium && <Badge variant="accent">💎 Premium</Badge>}
+          {isPremium ? <Badge variant="accent">Premium</Badge> : null}
         </div>
 
-        {/* Skills section */}
-        {skills.length > 0 && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <h4 className="font-semibold text-gray-900 mb-3">Top Skills</h4>
+        {skills.length > 0 ? (
+          <div className="mt-6 border-t border-[var(--border-soft)] pt-6">
+            <h4 className="mb-3 font-semibold text-[var(--text-strong)]">Top Skills</h4>
             <div className="flex flex-wrap gap-2">
               {skills.map((skill, idx) => (
                 <SkillBadge key={idx} skill={skill} />
               ))}
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

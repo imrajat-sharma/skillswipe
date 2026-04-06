@@ -1,5 +1,6 @@
-import { Activity, RefreshCcw, Sparkles, Users } from "lucide-react";
+import { Activity, CirclePlus, RefreshCcw, Sparkles, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "../components/Button";
 import { EmptyState } from "../components/EmptyState";
 import PostCard from "../components/PostCard";
@@ -48,8 +49,11 @@ export default function Dashboard() {
         payload.append("type", type);
         payload.append("caption", caption);
         files.forEach((file) => payload.append("images", file));
+      } else if (type === "poll") {
+        payload = { type, caption, question, options };
+        config = { headers: { "Content-Type": "application/json" } };
       } else {
-        payload = { type, formatting, content, caption, question, options };
+        payload = { type, formatting, content };
         config = { headers: { "Content-Type": "application/json" } };
       }
 
@@ -78,39 +82,47 @@ export default function Dashboard() {
   };
 
   return (
-    <section className="page-container pt-5 md:pt-7">
-      <div className="feed-grid">
+    <section className="page-container">
+      <div className="content-grid">
         <div className="grid gap-4">
-          <div className="page-surface rounded-[1.6rem] p-4 md:p-6">
+          <div className="glass-panel rounded-[2rem] p-5 md:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <div className="section-label">Your home base</div>
-                <h1 className="h2 mt-2 text-slate-900">Feed, context, and quick action</h1>
-                <p className="mt-2.5 max-w-2xl text-sm leading-6 text-slate-600">
+                <div className="section-label">Home feed</div>
+                <h1 className="h2 mt-2">Feed, context, and quick action</h1>
+                <p className="mt-2.5 max-w-2xl text-sm leading-7 text-[var(--text-muted)]">
                   Share progress updates, run polls, and see what the network is building before you jump into the discover queue.
                 </p>
               </div>
-              <Button type="button" variant="outline" onClick={() => { loadPosts(); refreshUser(); }}>
-                <RefreshCcw size={16} />
-                Refresh
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Link to="/discover">
+                  <Button type="button" variant="ghost">
+                    <CirclePlus size={16} />
+                    SwipeConnect
+                  </Button>
+                </Link>
+                <Button type="button" variant="outline" onClick={() => { loadPosts(); refreshUser(); }}>
+                  <RefreshCcw size={16} />
+                  Refresh
+                </Button>
+              </div>
             </div>
 
             <div className="mt-4 grid gap-3 md:grid-cols-3">
-              <div className="rounded-[1.1rem] bg-slate-900 px-4 py-4 text-white">
+              <div className="metric-card bg-[linear-gradient(135deg,#101828,#233a66)] text-white">
                 <Activity size={16} />
                 <p className="mt-3 text-2xl font-bold">{user?.swipesLeftToday ?? 0}</p>
                 <p className="mt-1 text-xs text-white/70">Swipes left today</p>
               </div>
-              <div className="rounded-[1.1rem] bg-primary-100 px-4 py-4 text-primary-900">
+              <div className="metric-card bg-[linear-gradient(135deg,#ffedd8,#ffd3c2)] text-slate-900">
                 <Users size={16} />
                 <p className="mt-3 text-2xl font-bold">{user?.roles?.length || 0}</p>
-                <p className="mt-1 text-xs text-primary-900/70">Roles on profile</p>
+                <p className="mt-1 text-xs text-slate-700/70">Roles on profile</p>
               </div>
-              <div className="rounded-[1.1rem] bg-secondary-100 px-4 py-4 text-secondary-900">
+              <div className="metric-card bg-[linear-gradient(135deg,#d9f6f3,#b3f0e6)] text-slate-900">
                 <Sparkles size={16} />
                 <p className="mt-3 text-2xl font-bold">{pagination?.total ?? posts.length}</p>
-                <p className="mt-1 text-xs text-secondary-900/70">Posts in current feed window</p>
+                <p className="mt-1 text-xs text-slate-700/70">Posts in current feed window</p>
               </div>
             </div>
           </div>
@@ -121,7 +133,7 @@ export default function Dashboard() {
           {error ? <div className="status-message error">{error}</div> : null}
 
           {loading ? (
-            <div className="page-surface rounded-[2rem] p-6 text-slate-500">Loading posts...</div>
+            <div className="glass-panel rounded-[2rem] p-6 text-[var(--text-muted)]">Loading posts...</div>
           ) : posts.length ? (
             <div className="grid gap-4">
               {posts.map((post) => (
@@ -130,11 +142,14 @@ export default function Dashboard() {
                   post={post}
                   onDelete={handleDeletePost}
                   deleting={deletingId === post._id}
+                  onPostUpdate={(updatedPost) =>
+                    setPosts((current) => current.map((item) => (item._id === updatedPost._id ? updatedPost : item)))
+                  }
                 />
               ))}
             </div>
           ) : (
-            <div className="page-surface rounded-[1.5rem]">
+            <div className="glass-panel rounded-[1.5rem]">
               <EmptyState
                 title="No posts yet"
                 description="Be the first person to share a project update, quick poll, or collaboration ask."
@@ -144,28 +159,36 @@ export default function Dashboard() {
         </div>
 
         <aside className="grid gap-4">
-          <div className="page-surface rounded-[1.5rem] p-4 md:p-5">
+          <div className="glass-panel rounded-[1.5rem] p-4 md:p-5">
             <div className="section-label">Profile status</div>
-            <h2 className="h3 mt-2 text-slate-900">{user?.isProfileComplete ? "Ready to be discovered" : "Complete your profile first"}</h2>
-            <p className="mt-2 text-xs leading-6 text-slate-600">
+            <h2 className="h3 mt-2">{user?.isProfileComplete ? "Ready to be discovered" : "Complete your profile first"}</h2>
+            <p className="mt-2 text-xs leading-6 text-[var(--text-muted)]">
               Your profile needs roles, skills, availability, bio, and a photo before it appears in the discover queue.
             </p>
             <div className="mt-3 chip-group">
               {(user?.skills || []).slice(0, 6).map((skill) => (
-                <span key={skill} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                <span key={skill} className="rounded-full bg-[var(--surface-subtle)] px-3 py-1 text-xs font-semibold text-[var(--text-muted)]">
                   {skill}
                 </span>
               ))}
             </div>
           </div>
 
-          <div className="page-surface rounded-[1.5rem] p-4 md:p-5">
+          <div className="glass-panel rounded-[1.5rem] p-4 md:p-5">
             <div className="section-label">Posting tips</div>
-            <ul className="mt-3 grid gap-2 text-xs leading-6 text-slate-600">
+            <ul className="mt-3 grid gap-2 text-xs leading-6 text-[var(--text-muted)]">
               <li>Use markdown text posts for build logs, learning notes, or mentorship asks.</li>
               <li>Image posts work well for screenshots, event moments, and project reveals.</li>
               <li>Polls are useful when you want quick signal from the community before building.</li>
             </ul>
+          </div>
+
+          <div className="glass-panel rounded-[1.5rem] p-4 md:p-5">
+            <div className="section-label">Next best move</div>
+            <h2 className="h3 mt-2">Post first, then swipe</h2>
+            <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">
+              The strongest matches happen when your feed gives people context. Share what you’re building, then head into SwipeConnect.
+            </p>
           </div>
         </aside>
       </div>
