@@ -23,7 +23,7 @@ export default function Auth({ initialMode = "login" }) {
 
   useEffect(() => {
     if (user) {
-      navigate("/feed", { replace: true });
+      navigate(user.isProfileComplete ? "/feed" : "/onboarding", { replace: true });
     }
   }, [navigate, user]);
 
@@ -50,11 +50,14 @@ export default function Auth({ initialMode = "login" }) {
     try {
       setIsLoading(true);
       if (isLogin) {
-        await login({ email: formData.email, password: formData.password });
+        const nextUser = await login({ email: formData.email, password: formData.password });
+        navigate(nextUser?.isProfileComplete ? location.state?.from?.pathname || "/feed" : "/onboarding", {
+          replace: true,
+        });
       } else {
-        await register({ name: formData.name, email: formData.email, password: formData.password });
+        const nextUser = await register({ name: formData.name, email: formData.email, password: formData.password });
+        navigate(nextUser?.isProfileComplete ? "/feed" : "/onboarding", { replace: true });
       }
-      navigate(location.state?.from?.pathname || "/feed", { replace: true });
     } catch (error) {
       setLocalError(error.message);
     } finally {

@@ -1,41 +1,109 @@
-import { Link } from 'react-router-dom';
-import Icon from '../components/Icon';
+import { motion as Motion } from "framer-motion";
+import { ArrowRight, Compass, MessageSquareText, Sparkles } from "lucide-react";
+import { Link, Navigate } from "react-router-dom";
+import { Button } from "../components/Button";
+import { useAuth } from "../context/AuthContext";
+
+const highlights = [
+  {
+    icon: Sparkles,
+    title: "Context-first feed",
+    copy: "Share text updates, image drops, and quick polls before anyone swipes on your profile.",
+  },
+  {
+    icon: Compass,
+    title: "Discovery with intent",
+    copy: "Use the existing swipe engine from the backend to find mentors, students, and collaborators.",
+  },
+  {
+    icon: MessageSquareText,
+    title: "Fast activity loop",
+    copy: "Move from a mutual match into real conversation without leaving the app shell.",
+  },
+];
 
 function Landing() {
+  const { user, loading } = useAuth();
+
+  if (!loading && user) {
+    return <Navigate to={user.isProfileComplete ? "/feed" : "/onboarding"} replace />;
+  }
+
   return (
-    <main className="landing-layout">
-      <section className="landing-shell glass-panel floating-in">
-        <div className="landing-copy">
-          <div className="kicker"><Icon name="spark" size={14} /> Professional only • mentors, mentees, collaborators</div>
-          <h1 className="landing-title">Delhi/NCR tech talent, matched with intention.</h1>
-          <p className="landing-copy-text">
-            SkillSwipe helps developers, designers, and AI enthusiasts discover aligned mentors, mentees, and short-term project collaborators without the noise of a dating app.
+    <main className="auth-scene px-4 py-5 md:px-6 md:py-8">
+      <div className="mx-auto grid min-h-[calc(100vh-2rem)] w-full max-w-7xl gap-5 lg:grid-cols-[1.02fr_0.98fr]">
+        <Motion.section
+          className="hero-panel rounded-[2rem] p-6 md:p-8 lg:p-10"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28 }}
+        >
+          <div className="section-label">SkillSwipe mobile web</div>
+          <h1 className="hero-title mt-4">Build your network like a native app, not a cold directory.</h1>
+          <p className="hero-copy mt-5 max-w-2xl">
+            SkillSwipe turns your existing backend into a fast, tactile social network for builders: post what you are
+            making, discover aligned people, and move into activity and chat with Material-style flow.
           </p>
 
-          <div className="cta-row">
-            <Link to="/register" className="primary-btn icon-btn"><Icon name="user" size={18} /> Create your profile</Link>
-            <Link to="/login" className="secondary-btn icon-btn"><Icon name="heart" size={18} /> I already have an account</Link>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Link to="/onboarding">
+              <Button variant="primary" size="lg">
+                Get Started
+                <ArrowRight size={17} />
+              </Button>
+            </Link>
+            <Link to="/login">
+              <Button variant="outline" size="lg">
+                Sign in
+              </Button>
+            </Link>
           </div>
 
-          <div className="hero-metrics landing-metrics">
-            <div className="metric-card"><span className="stat-icon"><Icon name="bolt" size={18} /></span><strong>10</strong><span>curated swipes per day to keep quality high</span></div>
-            <div className="metric-card"><span className="stat-icon"><Icon name="briefcase" size={18} /></span><strong>3 roles</strong><span>mentor, mentee, collaborator with multi-select support</span></div>
-            <div className="metric-card"><span className="stat-icon"><Icon name="cards" size={18} /></span><strong>Native swipe</strong><span>touch-first interactions with smooth motion</span></div>
+          <div className="hero-ribbon mt-8">
+            <span>Feed + discover + activity</span>
+            <span>Session auth</span>
+            <span>Mobile-first navigation</span>
+            <span>Native-feeling motion</span>
           </div>
-        </div>
 
-        <aside className="landing-preview">
-          <div className="preview-card landing-preview-card">
-            <div className="pill"><Icon name="spark" size={14} /> Featured stack</div>
-            <h2 style={{ marginTop: 16 }}>React + Node builders across Delhi, Noida, Gurgaon, and beyond</h2>
-            <p className="muted">Browse polished profile cards with skills, availability, location, and role intent so every swipe has context.</p>
-            <div className="tag-cloud landing-tag-cloud">
-              {['React', 'Node.js', 'AI/ML', 'UI/UX', 'Product Design', 'Next.js'].map((tag) => <span key={tag} className="skill-tag active">{tag}</span>)}
-            </div>
-            <div className="inline-banner"><Icon name="heart" size={16} /> Mutual interest becomes a professional match with a simple chat placeholder so conversations can begin fast.</div>
+          <div className="mt-8 grid gap-3 md:grid-cols-3">
+            {highlights.map((item) => (
+              <article key={item.title} className="feature-glass">
+                <item.icon size={18} />
+                <h2>{item.title}</h2>
+                <p>{item.copy}</p>
+              </article>
+            ))}
           </div>
-        </aside>
-      </section>
+        </Motion.section>
+
+        <Motion.aside
+          className="hero-panel rounded-[2rem] p-6 md:p-8 lg:p-10"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, delay: 0.06 }}
+        >
+          <div className="section-label">Flow preview</div>
+          <h2 className="h2 mt-4">Landing to onboarding to dashboard in one clean path</h2>
+          <div className="mt-6 grid gap-3">
+            {[
+              ["1", "Get Started", "Enter through a focused landing screen with a single primary CTA."],
+              ["2", "Signup + setup", "Create an account, then complete the multi-step profile flow against `/api/profile`."],
+              ["3", "Daily loop", "Feed, Discover, Activity, and Profile stay pinned in the bottom nav after auth."],
+            ].map(([step, title, copy]) => (
+              <div key={step} className="rounded-[1.35rem] border border-[var(--border-soft)] bg-[var(--surface-raised)] p-4">
+                <div className="flex items-start gap-3">
+                  <div className="brand-mark h-10 w-10 text-sm">{step}</div>
+                  <div>
+                    <h3 className="text-base font-bold text-[var(--text-strong)]">{title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">{copy}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Motion.aside>
+      </div>
     </main>
   );
 }

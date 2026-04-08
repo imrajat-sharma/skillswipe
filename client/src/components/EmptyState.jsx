@@ -1,4 +1,4 @@
-import React, { createElement } from "react";
+import { createElement } from "react";
 import { Inbox } from "lucide-react";
 import { Button } from "./Button";
 
@@ -10,14 +10,14 @@ export const EmptyState = ({
   onAction,
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-      <div className="mb-4 p-4 rounded-full bg-gray-100">
-        {createElement(Icon, { size: 32, className: "text-gray-600" })}
+    <div className="surface-empty flex flex-col items-center justify-center px-4 py-12 text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-[var(--text-body)]">
+        {createElement(Icon, { size: 30 })}
       </div>
-      <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
+      <h3 className="mb-2 text-lg font-bold text-[var(--text-strong)] md:text-xl">
         {title}
       </h3>
-      <p className="text-gray-600 mb-6 max-w-sm">{description}</p>
+      <p className="mb-6 max-w-sm text-sm leading-7 text-[var(--text-muted)]">{description}</p>
       {actionLabel && (
         <Button variant="primary" onClick={onAction}>
           {actionLabel}

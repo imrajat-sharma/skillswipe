@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
-import { MessageSquare, Send } from "lucide-react";
-import { useLocation } from "react-router-dom";
-import { ChatListItem } from "../components/ChatListItem";
+import { AnimatePresence, motion as Motion } from "framer-motion";
+import { ArrowLeft, MessageSquareText, Send } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Avatar } from "../components/Avatar";
+import { Badge } from "../components/Badge";
 import { Button } from "../components/Button";
 import { EmptyState } from "../components/EmptyState";
 import { useAuth } from "../context/AuthContext";
@@ -9,6 +11,7 @@ import { formatDateTime } from "../utils/formatters";
 
 export default function Chat() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { api, user } = useAuth();
   const [matches, setMatches] = useState([]);
   const [selectedChat, setSelectedChat] = useState("");
@@ -76,11 +79,13 @@ export default function Chat() {
 
       setActiveMatch(updatedMatch);
       setMatches((current) =>
-        current.map((match) => (match._id === updatedMatch._id ? updatedMatch : match)).sort((a, b) => {
-          const aTime = new Date(a.updatedAt || a.matchedAt || 0).getTime();
-          const bTime = new Date(b.updatedAt || b.matchedAt || 0).getTime();
-          return bTime - aTime;
-        }),
+        current
+          .map((match) => (match._id === updatedMatch._id ? updatedMatch : match))
+          .sort((a, b) => {
+            const aTime = new Date(a.updatedAt || a.matchedAt || 0).getTime();
+            const bTime = new Date(b.updatedAt || b.matchedAt || 0).getTime();
+            return bTime - aTime;
+          }),
       );
       setMessageText("");
       setError("");
@@ -91,99 +96,171 @@ export default function Chat() {
     }
   };
 
-  const chatItems = matches.map((match) => ({
-    id: match._id,
-    name: match.partner?.name || "Connection",
-    avatar: match.partner?.photo || "",
-    lastMessage: match.lastMessage?.content || "Start the conversation.",
-    timestamp: formatDateTime(match.lastMessage?.sentAt || match.updatedAt || match.matchedAt),
-    unreadCount: 0,
-    status: "online",
-  }));
+  const chatItems = useMemo(
+    () =>
+      matches.map((match) => ({
+        id: match._id,
+        name: match.partner?.name || "Connection",
+        avatar: match.partner?.photo || "",
+        lastMessage: match.lastMessage?.content || "Start the conversation.",
+        timestamp: formatDateTime(match.lastMessage?.sentAt || match.updatedAt || match.matchedAt),
+        roles: match.partner?.roles || [],
+      })),
+    [matches],
+  );
 
   return (
-    <div className="page-container">
-      <div className="md:flex w-full">
-        <div
-          className={`glass-panel w-full rounded-[1.8rem] md:w-80 md:max-h-[calc(100vh-120px)] md:overflow-y-auto ${
-            selectedChat ? "hidden md:block" : "block"
-          }`}
-        >
-          <div className="p-4 md:p-6">
-            <h1 className="mb-6 text-2xl font-bold text-[var(--text-strong)]">Messages</h1>
-            {error ? <div className="status-message error mb-4">{error}</div> : null}
-            <div className="space-y-2">
-              {loadingList ? (
-                <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface)] p-6 text-sm text-[var(--text-muted)]">
-                  Loading conversations...
-                </div>
-              ) : chatItems.length === 0 ? (
-                <EmptyState
-                  icon={MessageSquare}
-                  title="No messages yet"
-                  description="Match with someone in Discover to start a real conversation from the backend."
-                />
-              ) : (
-                chatItems.map((chat) => (
-                  <ChatListItem key={chat.id} chat={chat} onSelect={setSelectedChat} isActive={selectedChat === chat.id} />
-                ))
-              )}
+    <Motion.section
+      className="page-container"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.26 }}
+    >
+      <div className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <aside className={`rounded-[2rem] border border-[var(--border-soft)] bg-[var(--surface)] shadow-soft ${selectedChat ? "hidden lg:block" : "block"}`}>
+          <div className="border-b border-[var(--border-soft)] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-soft)]">Inbox</p>
+                <h1 className="mt-1 text-xl font-bold text-[var(--text-strong)]">Messages</h1>
+              </div>
+              <MessageSquareText size={18} className="text-[var(--text-soft)]" />
             </div>
           </div>
-        </div>
+
+          <div className="max-h-[calc(100vh-12rem)] overflow-y-auto p-3">
+            {error ? <div className="status-message error mb-3">{error}</div> : null}
+            {loadingList ? (
+              <div className="rounded-[1.25rem] bg-[var(--surface-subtle)] p-5 text-sm text-[var(--text-muted)]">
+                Loading conversations...
+              </div>
+            ) : chatItems.length ? (
+              <div className="grid gap-2">
+                {chatItems.map((chat) => {
+                  const isActive = selectedChat === chat.id;
+
+                  return (
+                    <Motion.button
+                      key={chat.id}
+                      whileTap={{ scale: 0.99 }}
+                      type="button"
+                      onClick={() => setSelectedChat(chat.id)}
+                      className={`w-full rounded-[1.35rem] border p-4 text-left transition ${
+                        isActive
+                          ? "border-[var(--text-strong)] bg-[var(--surface-subtle)] shadow-soft"
+                          : "border-[var(--border-soft)] bg-[var(--surface)]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar name={chat.name} image={chat.avatar} size="md" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="truncate text-sm font-semibold text-[var(--text-strong)]">{chat.name}</p>
+                            <span className="text-[11px] text-[var(--text-soft)]">{chat.timestamp}</span>
+                          </div>
+                          <p className="mt-1 truncate text-sm text-[var(--text-muted)]">{chat.lastMessage}</p>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {chat.roles.slice(0, 2).map((role) => (
+                          <Badge key={role} variant="neutral">
+                            {role}
+                          </Badge>
+                        ))}
+                      </div>
+                    </Motion.button>
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyState
+                icon={MessageSquareText}
+                title="No messages yet"
+                description="Match with someone in Discover to start a real conversation from the backend."
+              />
+            )}
+          </div>
+        </aside>
 
         {selectedChat ? (
-          <div className="glass-panel mt-4 flex flex-1 flex-col rounded-[1.8rem] md:ml-4 md:mt-0">
-            <div className="sticky top-0 border-b border-[var(--border-soft)] bg-[var(--surface)] p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="font-bold text-[var(--text-strong)]">{activeMatch?.partner?.name || "Conversation"}</h2>
-                  <p className="text-sm text-[var(--text-muted)]">
-                    {(activeMatch?.partner?.roles || []).join(", ") || "Professional connection"}
-                  </p>
+          <Motion.div
+            key={selectedChat}
+            initial={{ opacity: 0, x: 8 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex min-h-[72vh] flex-col overflow-hidden rounded-[2rem] border border-[var(--border-soft)] bg-[var(--surface)] shadow-soft"
+          >
+            <div className="sticky top-0 z-10 border-b border-[var(--border-soft)] bg-[var(--surface)] p-4 backdrop-blur-md">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/matches")}
+                    className="rounded-full bg-[var(--surface-subtle)] p-2 text-[var(--text-muted)] lg:hidden"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <Avatar
+                    name={activeMatch?.partner?.name}
+                    image={activeMatch?.partner?.photo}
+                    size="md"
+                    status="online"
+                  />
+                  <div>
+                    <h2 className="text-sm font-bold text-[var(--text-strong)]">
+                      {activeMatch?.partner?.name || "Conversation"}
+                    </h2>
+                    <p className="text-xs text-[var(--text-muted)]">
+                      {(activeMatch?.partner?.roles || []).join(", ") || "Professional connection"}
+                    </p>
+                  </div>
                 </div>
-                <button
-                  onClick={() => setSelectedChat("")}
-                  className="md:hidden text-[var(--text-muted)] hover:text-[var(--text-strong)]"
-                  type="button"
-                >
-                  Back
-                </button>
+                <Badge variant="primary">{activeMatch?.messageCount || 0} messages</Badge>
               </div>
             </div>
 
-            <div className="flex-1 space-y-4 overflow-y-auto p-4 md:p-6">
+            <div className="flex-1 space-y-3 overflow-y-auto p-4">
               {loadingThread ? (
-                <div className="text-sm text-[var(--text-muted)]">Loading thread...</div>
+                <div className="rounded-[1.25rem] bg-[var(--surface-subtle)] p-5 text-sm text-[var(--text-muted)]">
+                  Loading thread...
+                </div>
               ) : activeMatch?.messages?.length ? (
-                activeMatch.messages.map((message, index) => {
-                  const isOwnMessage = message.sender?._id === user?._id || message.sender === user?._id;
+                <AnimatePresence initial={false}>
+                  {activeMatch.messages.map((message, index) => {
+                    const isOwnMessage = message.sender?._id === user?._id || message.sender === user?._id;
 
-                  return (
-                    <div key={`${message.sentAt || message.createdAt || index}-${index}`} className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}>
-                      <div
-                        className={`max-w-xs rounded-lg px-4 py-2 ${
-                          isOwnMessage ? "bg-gradient-to-r from-rose-500 to-orange-400 text-white" : "bg-[var(--surface-subtle)] text-[var(--text-strong)]"
-                        }`}
+                    return (
+                      <Motion.div
+                        key={`${message.sentAt || message.createdAt || index}-${index}`}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
                       >
-                        <p className="text-sm">{message.content}</p>
-                        <p className={`mt-1 text-[11px] ${isOwnMessage ? "text-white/80" : "text-[var(--text-muted)]"}`}>
-                          {formatDateTime(message.sentAt || message.createdAt)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })
+                        <div
+                          className={`max-w-[82%] rounded-[1.4rem] px-4 py-3 shadow-soft ${
+                            isOwnMessage
+                              ? "bg-gradient-to-r from-primary-600 to-secondary-500 text-white"
+                              : "bg-[var(--surface-subtle)] text-[var(--text-strong)]"
+                          }`}
+                        >
+                          <p className="text-sm leading-6">{message.content}</p>
+                          <p className={`mt-2 text-[11px] ${isOwnMessage ? "text-white/80" : "text-[var(--text-soft)]"}`}>
+                            {formatDateTime(message.sentAt || message.createdAt)}
+                          </p>
+                        </div>
+                      </Motion.div>
+                    );
+                  })}
+                </AnimatePresence>
               ) : (
                 <EmptyState
-                  icon={MessageSquare}
+                  icon={MessageSquareText}
                   title="No messages yet"
-                  description="Start the conversation with a short intro, project context, or mentorship ask."
+                  description="Start with a short intro, shared context, or a direct ask to keep the match moving."
                 />
               )}
             </div>
 
-            <div className="sticky bottom-0 border-t border-[var(--border-soft)] bg-[var(--surface)] p-4 md:p-6">
+            <div className="border-t border-[var(--border-soft)] bg-[var(--surface)] p-4">
               <div className="flex gap-3">
                 <input
                   type="text"
@@ -203,17 +280,17 @@ export default function Chat() {
                 </Button>
               </div>
             </div>
-          </div>
+          </Motion.div>
         ) : (
-          <div className="hidden md:flex flex-1 items-center justify-center">
+          <div className="flex min-h-[72vh] items-center justify-center rounded-[2rem] border border-[var(--border-soft)] bg-[var(--surface)] shadow-soft">
             <EmptyState
-              icon={MessageSquare}
+              icon={MessageSquareText}
               title="Select a conversation"
               description="Choose a match from the list to load the live thread from the backend."
             />
           </div>
         )}
       </div>
-    </div>
+    </Motion.section>
   );
 }

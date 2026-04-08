@@ -1,7 +1,7 @@
 import SkeletonBlock from './SkeletonBlock';
 
 function Loader({ label = 'Loading', fullScreen = false, variant = 'content' }) {
-  const containerClass = `loader-wrap ${fullScreen ? 'full-screen' : ''}`;
+  const containerClass = `loader-wrap ${fullScreen ? 'full-screen' : ''}`.trim();
 
   return (
     <div className={containerClass}>

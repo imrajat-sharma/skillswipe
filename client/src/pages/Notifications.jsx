@@ -1,11 +1,16 @@
+import { AnimatePresence, motion as Motion } from "framer-motion";
 import { BellRing, Heart, MessageSquareText, RefreshCcw, Sparkles, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "../components/Badge";
 import { Button } from "../components/Button";
+import { EmptyState } from "../components/EmptyState";
+import { ActivitySignalCard } from "../components/activity/ActivitySignalCard";
 import { useAuth } from "../context/AuthContext";
 import { formatRelativeTime } from "../utils/formatters";
 
 export default function Notifications() {
+  const navigate = useNavigate();
   const { api, user } = useAuth();
   const [matches, setMatches] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -16,14 +21,14 @@ export default function Notifications() {
     try {
       setLoading(true);
       const [matchesResponse, postsResponse] = await Promise.all([
-        api.get("/matches?limit=5&page=1"),
+        api.get("/matches/chat?limit=5&page=1"),
         api.get("/posts?limit=5&page=1"),
       ]);
       setMatches(matchesResponse.data.matches || []);
       setPosts(postsResponse.data.posts || []);
       setError("");
     } catch (loadError) {
-      setError(loadError?.response?.data?.message || "Unable to load notifications right now.");
+      setError(loadError?.response?.data?.message || "Unable to load activity right now.");
     } finally {
       setLoading(false);
     }
@@ -42,91 +47,158 @@ export default function Notifications() {
     return [
       {
         id: "profile",
-        icon: Sparkles,
         title: user?.isProfileComplete ? "Your profile is discoverable" : "Complete your profile",
         body: user?.isProfileComplete
-          ? "Your profile is live in SwipeConnect, so new mutual connections can happen anytime."
+          ? "You are live in SwipeConnect and ready for mutual matches."
           : "Add your photo, skills, roles, bio, and availability to unlock SwipeConnect.",
-        status: user?.isProfileComplete ? "Live" : "Action needed",
+        meta: user?.isProfileComplete ? "Profile live" : "Needs action",
+        badge: user?.isProfileComplete ? "Ready" : "Setup",
       },
       {
         id: "swipes",
-        icon: Heart,
         title: `${user?.swipesLeftToday ?? 0} swipes left today`,
-        body: "Use your limited daily swipes on people whose skills and intent line up with what you want next.",
-        status: "Daily rhythm",
+        body: "Use your daily swipes on people whose skills and intent match what you want next.",
+        meta: "Daily rhythm",
+        badge: "Swipe",
       },
       latestMatch
         ? {
             id: "match",
-            icon: MessageSquareText,
             title: `Recent match with ${latestMatch.partner?.name || "a builder"}`,
             body: latestMatch.lastMessage?.content || "You have a fresh match waiting for a first message.",
-            status: formatRelativeTime(latestMatch.updatedAt || latestMatch.matchedAt),
+            meta: formatRelativeTime(latestMatch.updatedAt || latestMatch.matchedAt),
+            badge: "Chat",
           }
         : {
             id: "community",
-            icon: Users,
             title: "Community posting is active",
             body: feedPost
               ? `${feedPost.author?.name || "Someone"} shared a new ${feedPost.type} post ${formatRelativeTime(feedPost.createdAt)}.`
               : "Share text updates, image drops, and polls from the home feed to build context before a match starts.",
-            status: "Feed pulse",
+            meta: "Feed pulse",
+            badge: "Live",
           },
     ];
   }, [matches, posts, user]);
 
   return (
-    <section className="page-container">
-      <div className="glass-panel rounded-[2rem] p-6 md:p-8">
-        <div className="section-label">Notifications</div>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="h2">Important account signals</h1>
-            <p className="mt-3 max-w-2xl text-[var(--text-muted)]">
-              This view synthesizes live backend state from your profile, feed, and matches so the app still feels active
-              even without a dedicated notifications endpoint.
-            </p>
+    <Motion.section
+      className="page-container"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.26 }}
+    >
+      <div className="mx-auto grid max-w-5xl gap-4">
+        <div className="rounded-[2rem] border border-[var(--border-soft)] bg-[linear-gradient(135deg,rgba(250,204,21,0.2),rgba(251,191,36,0.14),rgba(255,255,255,0.92))] p-5 shadow-soft">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-soft)]">Activity</p>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight text-[var(--text-strong)]">What needs your attention.</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--text-muted)]">
+                This surface stitches together profile state, match activity, and recent feed momentum until a dedicated
+                notification stream exists in the backend.
+              </p>
+            </div>
+            <Button type="button" variant="outline" onClick={loadSignals}>
+              <RefreshCcw size={15} />
+              Refresh
+            </Button>
           </div>
-          <Button type="button" variant="outline" onClick={loadSignals}>
-            <RefreshCcw size={15} />
-            Refresh
-          </Button>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-[1.25rem] bg-[var(--surface)] p-4 shadow-soft">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-soft)]">Status</p>
+              <p className="mt-2 text-2xl font-bold text-[var(--text-strong)]">
+                {user?.isProfileComplete ? "Live" : "Setup"}
+              </p>
+            </div>
+            <div className="rounded-[1.25rem] bg-[var(--surface)] p-4 shadow-soft">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-soft)]">Matches</p>
+              <p className="mt-2 text-2xl font-bold text-[var(--text-strong)]">{matches.length}</p>
+            </div>
+            <div className="rounded-[1.25rem] bg-[var(--surface)] p-4 shadow-soft">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-soft)]">Swipes left</p>
+              <p className="mt-2 text-2xl font-bold text-[var(--text-strong)]">{user?.swipesLeftToday ?? 0}</p>
+            </div>
+          </div>
         </div>
 
-        {error ? <div className="status-message error mt-6">{error}</div> : null}
+        {error ? <div className="status-message error">{error}</div> : null}
 
-        <div className="mt-8 grid gap-4">
-          {loading ? <div className="rounded-[1.5rem] bg-[var(--surface-subtle)] p-6 text-sm text-[var(--text-muted)]">Loading notifications...</div> : null}
-          {items.map((item) => (
-            <article key={item.id} className="rounded-[1.5rem] border border-[var(--border-soft)] bg-[var(--surface)] p-5 shadow-soft">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex gap-4">
-                  <div className="rounded-2xl bg-[var(--surface-subtle)] p-3 text-rose-500">
-                    <item.icon size={20} />
-                  </div>
-                  <div>
-                    <h2 className="font-display text-xl font-bold text-[var(--text-strong)]">{item.title}</h2>
-                    <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{item.body}</p>
-                  </div>
-                </div>
-                <Badge variant="primary">{item.status}</Badge>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="grid gap-3">
+            {loading ? (
+              <div className="rounded-[1.5rem] bg-[var(--surface)] p-6 text-sm text-[var(--text-muted)] shadow-soft">
+                Loading activity...
               </div>
-            </article>
-          ))}
-        </div>
-
-        <div className="mt-6 rounded-[1.5rem] bg-[linear-gradient(135deg,#0f172a,#172554)] p-5 text-white">
-          <div className="flex items-center gap-2 text-white/80">
-            <BellRing size={18} />
-            <span className="text-sm font-semibold uppercase tracking-[0.16em]">Next step</span>
+            ) : (
+              <AnimatePresence>
+                {items.map((item) => (
+                  <Motion.div key={item.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                    <ActivitySignalCard
+                      title={item.title}
+                      body={item.body}
+                      meta={item.meta}
+                      badge={item.badge}
+                      onClick={() => {
+                        if (item.id === "profile") {
+                          navigate("/profile");
+                        }
+                        if (item.id === "swipes") {
+                          navigate("/discover");
+                        }
+                        if (item.id === "match") {
+                          navigate("/matches");
+                        }
+                      }}
+                    />
+                  </Motion.div>
+                ))}
+              </AnimatePresence>
+            )}
           </div>
-          <p className="mt-3 text-sm leading-6 text-white/75">
-            When the backend adds a dedicated notification stream, this screen can move from synthesized signals to true
-            event-based alerts without reworking the rest of the client.
-          </p>
+
+          <aside className="grid gap-4">
+            <div className="rounded-[1.5rem] border border-[var(--border-soft)] bg-[var(--surface)] p-4 shadow-soft">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-soft)]">
+                <BellRing size={14} />
+                Quick actions
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Badge variant="primary">{user?.isProfileComplete ? "Ready to match" : "Finish profile"}</Badge>
+                <Badge variant="neutral">SwipeConnect</Badge>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+                Tap into Discover to keep your queue moving or jump into Matches to reply faster.
+              </p>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-[var(--border-soft)] bg-[var(--surface)] p-4 shadow-soft">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-soft)]">
+                <Users size={14} />
+                Signals
+              </div>
+              <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+                Recent posts and mutual matches appear here so the app still feels alive even without a dedicated alerts
+                endpoint.
+              </p>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-[var(--border-soft)] bg-[var(--surface)] p-4 shadow-soft">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-soft)]">
+                <Heart size={14} />
+                Latest pulse
+              </div>
+              <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+                {items[2]?.body || "No activity yet. Your next swipe or message will show up here."}
+              </p>
+              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-soft)]">
+                {items[2]?.meta || "Waiting"}
+              </p>
+            </div>
+          </aside>
         </div>
       </div>
-    </section>
+    </Motion.section>
   );
 }

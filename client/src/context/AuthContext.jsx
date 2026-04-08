@@ -1,13 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useState } from 'react';
-import axios from 'axios';
-
-const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-export const api = axios.create({
-  baseURL: apiBaseUrl,
-  withCredentials: true,
-});
+import { createContext, useContext, useEffect, useState } from "react";
+import { api, apiBaseUrl, googleAuthUrl } from "../services";
+import { authService } from "../services/authService";
 
 const AuthContext = createContext(null);
 
@@ -16,13 +10,10 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState('');
 
-  const getErrorMessage = (error, fallback) =>
-    error?.response?.data?.message || error?.message || fallback;
-
   const fetchCurrentUser = async () => {
     try {
-      const response = await api.get('/auth/me');
-      setUser(response.data.user);
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
       setAuthError('');
     } catch {
       setUser(null);
@@ -35,32 +26,30 @@ export function AuthProvider({ children }) {
 
   const login = async (payload) => {
     try {
-      const response = await api.post('/auth/login', payload);
-      setUser(response.data.user);
+      const currentUser = await authService.login(payload);
+      setUser(currentUser);
       setAuthError('');
-      return response.data.user;
+      return currentUser;
     } catch (error) {
-      const message = getErrorMessage(error, 'Unable to sign in.');
-      setAuthError(message);
-      throw new Error(message);
+      setAuthError(error.message);
+      throw error;
     }
   };
 
   const register = async (payload) => {
     try {
-      const response = await api.post('/auth/register', payload);
-      setUser(response.data.user);
+      const currentUser = await authService.register(payload);
+      setUser(currentUser);
       setAuthError('');
-      return response.data.user;
+      return currentUser;
     } catch (error) {
-      const message = getErrorMessage(error, 'Unable to create account.');
-      setAuthError(message);
-      throw new Error(message);
+      setAuthError(error.message);
+      throw error;
     }
   };
 
   const logout = async () => {
-    await api.post('/auth/logout');
+    await authService.logout();
     setUser(null);
   };
 
@@ -80,7 +69,7 @@ export function AuthProvider({ children }) {
     logout,
     refreshUser,
     setAuthError,
-    googleAuthUrl: `${apiBaseUrl}/auth/google`,
+    googleAuthUrl: googleAuthUrl || `${apiBaseUrl}/auth/google`,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
